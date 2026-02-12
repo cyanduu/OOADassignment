@@ -7,7 +7,7 @@ public class TestMember1 {
         ParkingLot.getInstance().setSpots(savedSpots);
 
         // 2. If empty, add test data
-        if (ParkingLot.getInstance().getSpots().isEmpty()) {
+        if (ParkingLot.getInstance().getAllSpots().isEmpty()) {
             System.out.println("Creating new spots...");
             ParkingLot.getInstance().addSpot(new ParkingSpot("A1", "Compact", 2.0));
             ParkingLot.getInstance().addSpot(new ParkingSpot("B1", "Motorcycle", 1.0));
@@ -15,11 +15,11 @@ public class TestMember1 {
 
         // 3. Print status
         System.out.println("Current Spots in System:");
-        for (ParkingSpot s : ParkingLot.getInstance().getSpots()) {
+        for (ParkingSpot s : ParkingLot.getInstance().getAllSpots()) {
             System.out.println("- " + s.getSpotID() + " [" + s.getType() + "]");
         }
 
         // 4. Save Data
-        DataManager.saveState(ParkingLot.getInstance().getSpots());
+        DataManager.saveState(ParkingLot.getInstance().getAllSpots());
     }
 }

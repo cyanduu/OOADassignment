@@ -1,102 +1,90 @@
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ParkingLot implements Serializable {
-    // 1. Version ID for File Saving (Prevents crashes when code changes) [cite: 148-151]
-    private static final long serialVersionUID = 1L;
+public class ParkingLot {
+    // --- 1. SINGLETON PATTERN (The missing part!) ---
+    private static ParkingLot instance;
 
-    // --- Member 1: Data Section ---
-    private List<ParkingSpot> spots;
-    private double totalRevenue;
-    
-    // --- Member 4: Observer Pattern Section ---
-    // 'transient' is CRITICAL. It tells Java: "Save the revenue and spots to the file, 
-    // but DO NOT try to save the Admin Panel window." [cite: 159-160]
-    private transient List<ParkingObserver> observers = new ArrayList<>();
-
-    // Constructor: Creates the parking lot structure
-    public ParkingLot(int numFloors, int spotsPerFloor) {
+    // Private constructor so no one else can use "new ParkingLot()"
+    private ParkingLot() {
         this.spots = new ArrayList<>();
+        this.observers = new ArrayList<>();
         this.totalRevenue = 0.0;
-        
-        // Initialize Spots (e.g., F1-R1-S1) [cite: 46]
-        // This loop creates the physical layout of your lot
-        for (int f = 1; f <= numFloors; f++) {
-            for (int s = 1; s <= spotsPerFloor; s++) {
-                String id = String.format("F%d-R1-S%d", f, s);
-                
-                // Example logic: First 5 spots are Compact, next 5 Regular, etc. [cite: 42-44]
-                String type = "Regular"; 
-                double rate = 5.0;
-                
-                if (s <= 5) { type = "Compact"; rate = 2.0; }
-                else if (s > 15) { type = "Reserved"; rate = 10.0; }
-                
-                spots.add(new ParkingSpot(id, type, rate));
-            }
+    }
+
+    // This is the method your error says is "undefined"
+    public static ParkingLot getInstance() {
+        if (instance == null) {
+            instance = new ParkingLot();
+        }
+        return instance;
+    }
+
+    // --- 2. DATA FIELDS ---
+    private List<ParkingSpot> spots;
+    private List<ParkingObserver> observers;
+    private double totalRevenue;
+
+    // --- 3. DATA METHODS ---
+    public void setSpots(List<ParkingSpot> newSpots) {
+        this.spots = newSpots;
+    }
+
+    public List<ParkingSpot> getAllSpots() {
+        // Safety check to avoid crashes if spots is null
+        if (this.spots == null) {
+            this.spots = new ArrayList<>();
+        }
+        return this.spots;
+    }
+
+    // This method is needed for your TestMember1 to work
+    public void addSpot(ParkingSpot spot) {
+        if (this.spots == null) {
+            this.spots = new ArrayList<>();
+        }
+        this.spots.add(spot);
+    }
+
+    // --- 4. OBSERVER & LOGIC ---
+    public void addObserver(ParkingObserver observer) {
+        this.observers.add(observer);
+    }
+
+    private void notifyObservers() {
+        for (ParkingObserver observer : observers) {
+            observer.onParkingDataChanged();
         }
     }
 
-    // --- Observer Pattern Logic (Member 4) ---
-
-    public void addObserver(ParkingObserver obs) {
-        // Safety Check: When loading from a file, 'transient' fields come back as NULL.
-        // We must re-create the list to prevent a NullPointerException.
-        if (observers == null) {
-            observers = new ArrayList<>();
-        }
-        observers.add(obs);
-    }
-
-    public void notifyObservers() {
-        // If nobody is listening (or list is null), do nothing
-        if (observers == null) return;
-        
-        for (ParkingObserver obs : observers) {
-            obs.onParkingDataChanged();
-        }
-    }
-
-    // --- Business Logic (Triggers) ---
-
-    // Called when a vehicle pays (Member 3 - Exit Panel)
     public void addRevenue(double amount) {
         this.totalRevenue += amount;
-        notifyObservers(); // Automatically updates the Admin Panel!
+        notifyObservers();
     }
 
-    // Called when a vehicle enters (Member 3 - Entry Panel)
-    public boolean parkVehicle(String spotID, Vehicle vehicle) {
-        for (ParkingSpot s : spots) {
-            if (s.getSpotID().equals(spotID) && !s.isOccupied()) {
-                s.park(vehicle);
-                notifyObservers(); // Notify Admin Panel to decrease vacancy count
-                return true;
+    public double getTotalRevenue() {
+        return totalRevenue;
+    }
+    
+    // Core parking logic
+    public Ticket parkVehicle(Vehicle v) {
+        ParkingSpot spot = findAvailableSpot(v);
+        if (spot != null) {
+            spot.park(v);
+            Ticket ticket = new Ticket(v.getLicensePlate(), spot.getSpotID(), v.getEntryTime());
+            notifyObservers();
+            return ticket;
+        }
+        return null;
+    }
+
+    private ParkingSpot findAvailableSpot(Vehicle v) {
+        if (spots == null) return null;
+        for (ParkingSpot spot : spots) {
+            if (!spot.isOccupied() && spot.isSuitableFor(v)) {
+                return spot;
             }
         }
-        return false;
-    }
-
-    // Called when a vehicle exits
-    // Inside ParkingLot.java
-public void removeVehicle(String spotID) {
-    for (ParkingSpot s : spots) {
-        if (s.getSpotID().equals(spotID)) {
-            s.removeVehicle();
-            notifyObservers();
-            break;
-        }
-    }
-}
-    
-    // --- Getters for Reports ---
-    
-    public double getTotalRevenue() { 
-        return totalRevenue; 
-    }
-    
-    public List<ParkingSpot> getAllSpots() { 
-        return spots; 
+        return null;
     }
 }

@@ -56,6 +56,10 @@ public class ParkingSpot implements Serializable {
         this.isOccupied = true;
     }
 
+    public Vehicle getCurrentVehicle() {
+        return currentVehicle;
+    }
+
     public void removeVehicle() {
         this.currentVehicle = null;
         this.isOccupied = false;
