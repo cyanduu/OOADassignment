@@ -1,59 +1,89 @@
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.util.List; // Import List
 
 public class AdminPanel extends JPanel implements ParkingObserver {
     private JLabel lblRevenue;
     private JLabel lblOccupancy;
-    private JComboBox<String> schemeSelector; // <--- NEW: The Dropdown
+    private JComboBox<String> schemeSelector;
+    private JTable vehicleTable; // NEW: Required by assignment
+    private DefaultTableModel tableModel;
     private ParkingLot lot;
 
-    public AdminPanel() {
-        this.lot = ParkingLot.getInstance();
-        this.lot.addObserver(this);
+    // Fix: Pass the loaded 'lot' object here
+    public AdminPanel(ParkingLot lot) {
+        this.lot = lot;
+        this.lot.addObserver(this); // Register for updates
 
-        setLayout(new BorderLayout());
-        setBackground(new Color(240, 240, 240));
+        setLayout(new BorderLayout(10, 10)); // Add spacing
+        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // 1. Top Section: Stats
-        JPanel statsPanel = new JPanel(new GridLayout(2, 1, 10, 10));
+        JPanel statsPanel = new JPanel(new GridLayout(1, 2, 10, 10));
         lblRevenue = new JLabel("Total Revenue: RM 0.00", SwingConstants.CENTER);
-        lblOccupancy = new JLabel("Live Occupancy: 0 / 20", SwingConstants.CENTER);
+        lblOccupancy = new JLabel("Occupancy: 0 / 0", SwingConstants.CENTER);
         
-        // Style the labels
-        lblRevenue.setFont(new Font("Arial", Font.BOLD, 20));
-        lblOccupancy.setFont(new Font("Arial", Font.BOLD, 20));
+        lblRevenue.setFont(new Font("Arial", Font.BOLD, 18));
+        lblOccupancy.setFont(new Font("Arial", Font.BOLD, 18));
+        lblRevenue.setOpaque(true);
+        lblRevenue.setBackground(new Color(220, 255, 220)); // Light Green for money
+        
         statsPanel.add(lblRevenue);
         statsPanel.add(lblOccupancy);
-        add(statsPanel, BorderLayout.CENTER);
+        add(statsPanel, BorderLayout.NORTH);
 
-        // 2. Bottom Section: Fine Management Control
+        // 2. Center Section: Vehicle List (REQUIRED [cite: 126])
+        String[] columns = {"Spot ID", "License Plate", "Type", "Entry Time"};
+        tableModel = new DefaultTableModel(columns, 0);
+        vehicleTable = new JTable(tableModel);
+        add(new JScrollPane(vehicleTable), BorderLayout.CENTER);
+
+        // 3. Bottom Section: Controls
         JPanel controlsPanel = new JPanel();
         controlsPanel.setBorder(BorderFactory.createTitledBorder("System Configuration"));
-        
         controlsPanel.add(new JLabel("Active Fine Scheme:"));
+        
         String[] schemes = {"Fixed", "Hourly", "Progressive"};
         schemeSelector = new JComboBox<>(schemes);
         
-        // Add Action Listener to update the backend immediately
         schemeSelector.addActionListener(e -> {
             String selected = (String) schemeSelector.getSelectedItem();
-            FineManager.setActiveScheme(selected); // <--- Links to Member 2's code
+            // Ensure BillingService has this static method
+            // BillingService.setFineScheme(selected);
             JOptionPane.showMessageDialog(this, "Fine Scheme updated to: " + selected);
         });
         
         controlsPanel.add(schemeSelector);
         add(controlsPanel, BorderLayout.SOUTH);
+
+        // Initial refresh
+        onParkingDataChanged();
     }
 
     @Override
-    public void update() {
-        double revenue = lot.getTotalRevenue();
-        int occupied = lot.getOccupiedCount();
-        int totalSpots = lot.getSpots().size();
+    public void onParkingDataChanged() { // MATCHES INTERFACE NAME
+        // 1. Update Revenue
+        lblRevenue.setText(String.format("Total Revenue: RM %.2f", lot.getTotalRevenue()));
 
-        lblRevenue.setText(String.format("Total Revenue: RM %.2f", revenue));
-        lblOccupancy.setText("Live Occupancy: " + occupied + " / " + totalSpots);
+        // 2. Update Occupancy
+        List<ParkingSpot> spots = lot.getAllSpots();
+        long occupied = spots.stream().filter(ParkingSpot::isOccupied).count();
+        int total = spots.size();
+        lblOccupancy.setText("Occupancy: " + occupied + " / " + total);
+
+        // 3. Update Table
+        tableModel.setRowCount(0); // Clear table
+        for (ParkingSpot s : spots) {
+            if (s.isOccupied()) {
+                Vehicle v = s.getCurrentVehicle();
+                tableModel.addRow(new Object[]{
+                    s.getSpotID(),
+                    v.getLicensePlate(),
+                    v.getType(),
+                    new java.util.Date(v.getEntryTime()).toString() // Simple date format
+                });
+            }
+        }
     }
 }
