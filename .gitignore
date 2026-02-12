@@ -1,0 +1,26 @@
+# --- Compiled Class Files ---
+*.class
+
+# --- Build & Output Folders ---
+bin/
+out/
+build/
+target/
+
+# --- IDE Settings (Optional but Recommended) ---
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+
+# --- Operating System Junk ---
+.DS_Store
+Thumbs.db
+
+# --- Data Files (If you don't want to share the save file) ---
+# Uncomment the line below if you want each member to have their own local data
+# *.dat
