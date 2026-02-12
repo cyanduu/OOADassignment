@@ -87,4 +87,19 @@ public class ParkingLot {
         }
         return null;
     }
+
+    // ADD THIS TO ParkingLot.java
+    public Ticket parkVehicleAtSpot(String spotID, Vehicle v) {
+        for (ParkingSpot spot : getAllSpots()) {
+            if (spot.getSpotID().equals(spotID) && !spot.isOccupied()) {
+                if (spot.isSuitableFor(v)) {
+                    spot.park(v);
+                    Ticket ticket = new Ticket(v.getLicensePlate(), spot.getSpotID(), v.getEntryTime());
+                    notifyObservers(); // Important for Member 4's Admin Panel
+                    return ticket;
+                }
+            }
+        }
+        return null; // Selection failed
+    }
 }
