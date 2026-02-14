@@ -14,6 +14,36 @@ public class ParkingSpot implements Serializable {
         this.isOccupied = false;
     }
 
+    // --- LOGIC: CHECK IF VEHICLE FITS ---
+    public boolean isSuitableFor(Vehicle v) {
+        if (v == null) return false;
+        String vType = v.getType(); // "Car", "Motorcycle", "SUV", "Bicycle", "VIP"
+
+        switch (this.type) {
+            case "Compact":
+                // Requirement: For small vehicles (motorcycles, bicycles)
+                return vType.equalsIgnoreCase("Motorcycle") || vType.equalsIgnoreCase("Bicycle");
+
+            case "Regular":
+                // Requirement: For regular cars (and usually SUVs fit here too)
+                return vType.equalsIgnoreCase("Car") || vType.equalsIgnoreCase("SUV");
+
+            case "Handicapped":
+                // Requirement: Reserved for handicapped.
+                // Physically, any car fits, but logically only those with permits.
+                // We allow all to "fit" physically, but billing handles the "Free" part.
+                return true; 
+
+            case "Reserved":
+                // Requirement: For VIP customers
+                // Only allow if the vehicle is explicitly marked as VIP/Reserved
+                return vType.equalsIgnoreCase("VIP");
+
+            default:
+                return false;
+        }
+    }
+
     public boolean isOccupied() {
         return isOccupied;
     }
@@ -26,8 +56,12 @@ public class ParkingSpot implements Serializable {
         return type;
     }
 
+    public double getHourlyRate() {
+        return hourlyRate;
+    }
+
     // CRITICAL: Logic to check if a vehicle fits in this spot
-    public boolean isSuitableFor(Vehicle v) {
+    /*public boolean isSuitableFor(Vehicle v) {
         String vType = v.getType();
 
         // 1. Motorcycle spots are ONLY for Motorcycles
@@ -49,7 +83,7 @@ public class ParkingSpot implements Serializable {
         // For now, allow any vehicle type if the spot is Handicapped, 
         // assuming the UI checked for the permit.
         return true; 
-    }
+    }*/
 
     public void park(Vehicle v) {
         this.currentVehicle = v;
@@ -58,6 +92,10 @@ public class ParkingSpot implements Serializable {
 
     public Vehicle getCurrentVehicle() {
         return currentVehicle;
+    }
+
+    public Vehicle getVehicle() {
+        return this.currentVehicle;
     }
 
     public void removeVehicle() {

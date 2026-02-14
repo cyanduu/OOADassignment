@@ -1,18 +1,20 @@
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ParkingLot {
-    // --- 1. SINGLETON PATTERN (The missing part!) ---
+public class ParkingLot implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
+    // --- 1. SINGLETON PATTERN ---
     private static ParkingLot instance;
 
-    // Private constructor so no one else can use "new ParkingLot()"
     private ParkingLot() {
         this.spots = new ArrayList<>();
         this.observers = new ArrayList<>();
         this.totalRevenue = 0.0;
+        initializeSpots();
     }
 
-    // This is the method your error says is "undefined"
     public static ParkingLot getInstance() {
         if (instance == null) {
             instance = new ParkingLot();
@@ -22,39 +24,53 @@ public class ParkingLot {
 
     // --- 2. DATA FIELDS ---
     private List<ParkingSpot> spots;
-    private List<ParkingObserver> observers;
+    private transient List<ParkingObserver> observers = new ArrayList<>();
     private double totalRevenue;
 
-    // --- 3. DATA METHODS ---
+    // --- 3. INITIALIZE SPOTS (4 Floors) ---
+    private void initializeSpots() {
+        int floors = 4;
+        int spotsPerFloor = 20;
+
+        for (int f = 1; f <= floors; f++) {
+            for (int s = 1; s <= spotsPerFloor; s++) {
+                String id = String.format("F%d-S%02d", f, s);
+                String type = "Regular";
+                double rate = 5.0;
+
+                if (f == 1) {
+                    if (s <= 5) { type = "Handicapped"; rate = 2.0; } 
+                    else { type = "Reserved"; rate = 10.0; }
+                } else if (f == 4) {
+                    type = "Compact"; rate = 2.0;
+                }
+
+                spots.add(new ParkingSpot(id, type, rate));
+            }
+        }
+    }
+
+    // --- 4. DATA ACCESS METHODS ---
     public void setSpots(List<ParkingSpot> newSpots) {
         this.spots = newSpots;
     }
 
-    public List<ParkingSpot> getAllSpots() {
-        // Safety check to avoid crashes if spots is null
-        if (this.spots == null) {
-            this.spots = new ArrayList<>();
-        }
+    public List<ParkingSpot> getSpots() {
+        if (this.spots == null) this.spots = new ArrayList<>();
         return this.spots;
     }
 
-    // This method is needed for your TestMember1 to work
+    // Alias method to prevent errors if team members use "getAllSpots"
+    public List<ParkingSpot> getAllSpots() {
+        return getSpots();
+    }
+
     public void addSpot(ParkingSpot spot) {
-        if (this.spots == null) {
-            this.spots = new ArrayList<>();
-        }
-        this.spots.add(spot);
+        getSpots().add(spot);
     }
 
-    // --- 4. OBSERVER & LOGIC ---
-    public void addObserver(ParkingObserver observer) {
-        this.observers.add(observer);
-    }
-
-    private void notifyObservers() {
-        for (ParkingObserver observer : observers) {
-            observer.onParkingDataChanged();
-        }
+    public double getTotalRevenue() {
+        return totalRevenue;
     }
 
     public void addRevenue(double amount) {
@@ -62,11 +78,22 @@ public class ParkingLot {
         notifyObservers();
     }
 
-    public double getTotalRevenue() {
-        return totalRevenue;
+    // --- 5. OBSERVER PATTERN ---
+    public void addObserver(ParkingObserver obs) {
+        if (observers == null) observers = new ArrayList<>();
+        observers.add(obs);
     }
+
+    private void notifyObservers() {
+        if (observers == null) return;
+        for (ParkingObserver obs : observers) {
+            obs.onParkingDataChanged();
+        }
+    }
+
+    // --- 6. CORE LOGIC ---
     
-    // Core parking logic
+    // Auto-park (for testing)
     public Ticket parkVehicle(Vehicle v) {
         ParkingSpot spot = findAvailableSpot(v);
         if (spot != null) {
@@ -78,28 +105,51 @@ public class ParkingLot {
         return null;
     }
 
+    // Manual park (for EntryPanel)
+    public Ticket parkVehicleAtSpot(String spotID, Vehicle v) {
+        for (ParkingSpot spot : getSpots()) {
+            if (spot.getSpotID().equals(spotID)) {
+                if (!spot.isOccupied() && spot.isSuitableFor(v)) {
+                    spot.park(v);
+                    Ticket ticket = new Ticket(v.getLicensePlate(), spot.getSpotID(), v.getEntryTime());
+                    notifyObservers();
+                    return ticket;
+                }
+            }
+        }
+        return null;
+    }
+
+    // Find spot by plate (for ExitPanel)
+    public ParkingSpot findSpotByPlate(String plate) {
+        for (ParkingSpot spot : getSpots()) {
+            if (spot.isOccupied() && spot.getCurrentVehicle() != null) {
+                if (spot.getCurrentVehicle().getLicensePlate().equalsIgnoreCase(plate)) {
+                    return spot;
+                }
+            }
+        }
+        return null;
+    }
+
+    // Internal helper
     private ParkingSpot findAvailableSpot(Vehicle v) {
-        if (spots == null) return null;
-        for (ParkingSpot spot : spots) {
+        for (ParkingSpot spot : getSpots()) {
             if (!spot.isOccupied() && spot.isSuitableFor(v)) {
                 return spot;
             }
         }
         return null;
     }
-
-    // ADD THIS TO ParkingLot.java
-    public Ticket parkVehicleAtSpot(String spotID, Vehicle v) {
-        for (ParkingSpot spot : getAllSpots()) {
-            if (spot.getSpotID().equals(spotID) && !spot.isOccupied()) {
-                if (spot.isSuitableFor(v)) {
-                    spot.park(v);
-                    Ticket ticket = new Ticket(v.getLicensePlate(), spot.getSpotID(), v.getEntryTime());
-                    notifyObservers(); // Important for Member 4's Admin Panel
-                    return ticket;
-                }
+    
+    public void removeVehicle(String spotID) {
+        for (ParkingSpot s : getSpots()) {
+            if (s.getSpotID().equals(spotID)) {
+                s.removeVehicle();
+                notifyObservers();
+                break;
             }
         }
-        return null; // Selection failed
     }
-}
+
+} // <--- FINAL CLOSING BRACE (Ensure nothing is after this)

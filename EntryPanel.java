@@ -1,6 +1,6 @@
-import javax.swing.*;
 import java.awt.*;
 import java.util.List;
+import javax.swing.*;
 
 public class EntryPanel extends JPanel {
     private JTextField textPlate;
@@ -59,14 +59,24 @@ public class EntryPanel extends JPanel {
         ComboSpots.removeAllItems();
         String selectedType = (String) ComboType.getSelectedItem();
         
+        // If nothing is selected or it's the default prompt, stop here
+        if (selectedType == null || selectedType.equals("Select Vehicle Type:-")) {
+            return;
+        }
+
         // Create a dummy vehicle to test suitability
         Vehicle dummy = createVehicle("CHECK", selectedType);
         
+        // --- ADD THIS SAFETY CHECK ---
+        if (dummy == null) {
+            return; // If createVehicle failed, stop before crashing
+        }
+        // -----------------------------
+        
         // Fetch all spots from Backend
-        List<ParkingSpot> allSpots = ParkingLot.getInstance().getAllSpots();
+        List<ParkingSpot> allSpots = ParkingLot.getInstance().getSpots();
         
         for (ParkingSpot s : allSpots) {
-            // Requirement 1: Only show spots that are NOT occupied and are SUITABLE
             if (!s.isOccupied() && s.isSuitableFor(dummy)) {
                 ComboSpots.addItem(s.getSpotID());
             }
@@ -115,9 +125,17 @@ public class EntryPanel extends JPanel {
 
     // Helper to handle Polymorphism (Car, Motorcycle, SUV)
     private Vehicle createVehicle(String plate, String type) {
+        if (type == null) return null;
+        
         if (type.equals("Car")) return new Car(plate);
         if (type.equals("Motorcycle")) return new Motorcycle(plate);
-        if (type.equals("SUV")) return new SUV(plate);
+        
+        // FIX: Match the ComboBox string "SUV/Truck"
+        if (type.equals("SUV") || type.equals("SUV/Truck")) return new SUV(plate);
+        
+        // FIX: Handle "Handicapped Vehicle" (Treat as Car or special class if you have one)
+        if (type.equals("Handicapped Vehicle")) return new Car(plate); 
+
         return null;
     }
 }

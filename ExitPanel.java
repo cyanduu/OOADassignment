@@ -47,6 +47,7 @@ public class ExitPanel extends JPanel {
     }
 
     // Steps 2, 3, 4, 5, 6
+    // Updated for Member 2's FineManager
     private void calculateExitDetails() {
         String plate = textSearchPlate.getText().trim().toUpperCase();
         if (plate.isEmpty()) {
@@ -54,8 +55,8 @@ public class ExitPanel extends JPanel {
             return;
         }
 
-        // Step 2: Find the vehicle in the system
-        foundSpot = findSpotByPlate(plate);
+        // 1. Find the vehicle
+        foundSpot = ParkingLot.getInstance().findSpotByPlate(plate); // You added this to ParkingLot earlier!
 
         if (foundSpot == null) {
             JOptionPane.showMessageDialog(this, "Vehicle not found! Is it currently parked?");
@@ -64,49 +65,60 @@ public class ExitPanel extends JPanel {
             return;
         }
 
-        Vehicle v = foundSpot.getCurrentVehicle(); //
+        Vehicle v = foundSpot.getCurrentVehicle(); // You added this to ParkingSpot earlier!
 
-        // Step 3: Calculate Duration
+        // 2. Calculate Duration
         long durationMs = System.currentTimeMillis() - v.getEntryTime();
         double hours = durationMs / (1000.0 * 60 * 60);
+        if (hours < 0.01) hours = 1.0; // Minimum 1 hour simulation
+
+        // 3. Setup flags for Member 2's logic
+        // (In a real app, you'd have a checkbox for 'Card Presented', assuming false for now)
+        boolean hasCard = false; 
+        // Check if they parked in a Reserved spot without being a "Reserved" vehicle (Example logic)
+        boolean isReservedViolation = foundSpot.getType().equalsIgnoreCase("Reserved"); 
+
+        // 4. CALL MEMBER 2's CODE
+        double parkingFee = FineManager.calculateParkingFee(
+            hours, 
+            foundSpot.getHourlyRate(), 
+            foundSpot.getType(), 
+            hasCard
+        );
         
-        // Simulation: If hours is 0 (testing), make it 1 hour minimum
-        if (hours < 0.01) hours = 1.0; 
-
-        // Step 4: Calculate Fee based on Spot Type/Rate
-        double rate = foundSpot.getHourlyRate(); 
-        hourlyFee = hours * rate;
-
-        // Step 5: Check Unpaid Fines (Using our new helper)
-        unpaidFines = FineService.getOutstandingFines(plate);
+        // Calculate Overstay/Violation Fines
+        double newFines = FineManager.calculateFine(hours, isReservedViolation);
+        
+        // Get Old Debts
+        unpaidFines = FineManager.getUnpaidFines(plate);
 
         // Total
-        totalAmountDue = hourlyFee + unpaidFines;
+        totalAmountDue = parkingFee + newFines + unpaidFines;
 
-        // Step 6: Show Details
+        // 5. Show Details
         String invoice = String.format(
             "=== EXIT BILL ===\n" +
             "License Plate: %s\n" +
             "Spot ID:       %s (%s)\n" +
             "------------------------\n" +
             "Duration:      %.2f hrs\n" +
-            "Hourly Rate:   RM %.2f\n" +
             "Parking Fee:   RM %.2f\n" +
-            "Unpaid Fines:  RM %.2f\n" +
+            "New Fines:     RM %.2f\n" +
+            "Old Debts:     RM %.2f\n" +
             "------------------------\n" +
             "TOTAL DUE:     RM %.2f",
             plate, 
             foundSpot.getSpotID(), 
             foundSpot.getType(),
             hours, 
-            rate, 
-            hourlyFee, 
+            parkingFee,
+            newFines,
             unpaidFines, 
             totalAmountDue
         );
 
         textReceiptArea.setText(invoice);
-        buttonPay.setEnabled(true); // Enable payment button now
+        buttonPay.setEnabled(true);
     }
 
     // Steps 7, 8, 9

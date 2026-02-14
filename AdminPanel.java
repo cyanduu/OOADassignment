@@ -1,13 +1,13 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.util.List; // Import List
+import java.util.List;
 
 public class AdminPanel extends JPanel implements ParkingObserver {
     private JLabel lblRevenue;
     private JLabel lblOccupancy;
     private JComboBox<String> schemeSelector;
-    private JTable vehicleTable; // NEW: Required by assignment
+    private JTable vehicleTable;
     private DefaultTableModel tableModel;
     private ParkingLot lot;
 
@@ -33,7 +33,7 @@ public class AdminPanel extends JPanel implements ParkingObserver {
         statsPanel.add(lblOccupancy);
         add(statsPanel, BorderLayout.NORTH);
 
-        // 2. Center Section: Vehicle List (REQUIRED [cite: 126])
+        // 2. Center Section: Vehicle List
         String[] columns = {"Spot ID", "License Plate", "Type", "Entry Time"};
         tableModel = new DefaultTableModel(columns, 0);
         vehicleTable = new JTable(tableModel);
@@ -49,8 +49,6 @@ public class AdminPanel extends JPanel implements ParkingObserver {
         
         schemeSelector.addActionListener(e -> {
             String selected = (String) schemeSelector.getSelectedItem();
-            // Ensure BillingService has this static method
-            // BillingService.setFineScheme(selected);
             JOptionPane.showMessageDialog(this, "Fine Scheme updated to: " + selected);
         });
         
@@ -62,27 +60,40 @@ public class AdminPanel extends JPanel implements ParkingObserver {
     }
 
     @Override
-    public void onParkingDataChanged() { // MATCHES INTERFACE NAME
+    public void onParkingDataChanged() {
         // 1. Update Revenue
-        lblRevenue.setText(String.format("Total Revenue: RM %.2f", lot.getTotalRevenue()));
+        // Ensure ParkingLot.java has this method!
+        if (lot != null) {
+             lblRevenue.setText(String.format("Total Revenue: RM %.2f", lot.getTotalRevenue()));
+        }
 
         // 2. Update Occupancy
-        List<ParkingSpot> spots = lot.getAllSpots();
-        long occupied = spots.stream().filter(ParkingSpot::isOccupied).count();
-        int total = spots.size();
-        lblOccupancy.setText("Occupancy: " + occupied + " / " + total);
+        // FIX 1: Changed 'getAllSpots()' to 'getSpots()' to match ParkingLot.java
+        List<ParkingSpot> spots = lot.getSpots(); 
+        
+        long occupied = 0;
+        if (spots != null) {
+            occupied = spots.stream().filter(ParkingSpot::isOccupied).count();
+            int total = spots.size();
+            lblOccupancy.setText("Occupancy: " + occupied + " / " + total);
 
-        // 3. Update Table
-        tableModel.setRowCount(0); // Clear table
-        for (ParkingSpot s : spots) {
-            if (s.isOccupied()) {
-                Vehicle v = s.getCurrentVehicle();
-                tableModel.addRow(new Object[]{
-                    s.getSpotID(),
-                    v.getLicensePlate(),
-                    v.getType(),
-                    new java.util.Date(v.getEntryTime()).toString() // Simple date format
-                });
+            // 3. Update Table
+            tableModel.setRowCount(0); // Clear table
+            for (ParkingSpot s : spots) {
+                if (s.isOccupied()) {
+                    // FIX 2: Changed 'getCurrentVehicle()' to 'getVehicle()' 
+                    // (Unless you explicitly renamed it in ParkingSpot.java)
+                    Vehicle v = s.getVehicle(); 
+                    
+                    if (v != null) {
+                        tableModel.addRow(new Object[]{
+                            s.getSpotID(),
+                            v.getLicensePlate(),
+                            v.getType(),
+                            new java.util.Date(v.getEntryTime()).toString()
+                        });
+                    }
+                }
             }
         }
     }
