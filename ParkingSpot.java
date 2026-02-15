@@ -1,8 +1,10 @@
 import java.io.Serializable;
 
 public class ParkingSpot implements Serializable {
-    private String spotID;      // e.g., "F1-01"
-    private String type;        // "Compact", "Regular", "Motorcycle", "Handicapped"
+    private static final long serialVersionUID = 1L; // Add Version ID
+
+    private String spotID;
+    private String type; // "Compact", "Regular", "Handicapped", "Reserved" 
     private boolean isOccupied;
     private Vehicle currentVehicle;
     private double hourlyRate;
@@ -14,90 +16,46 @@ public class ParkingSpot implements Serializable {
         this.isOccupied = false;
     }
 
-    // --- LOGIC: CHECK IF VEHICLE FITS ---
+    public boolean isOccupied() { return isOccupied; }
+    public String getSpotID() { return spotID; }
+    public String getType() { return type; }
+    public Vehicle getCurrentVehicle() { return currentVehicle; } // Needed for AdminPanel
+
+    // CRITICAL: Logic fixed to match Assignment Page 2 [cite: 57-60]
     public boolean isSuitableFor(Vehicle v) {
-        if (v == null) return false;
-        
-        // OPTION 1: The Best Way (Link to Member 2's Logic)
-        // This ensures both files always agree.
-        return FineManager.isVehicleAllowed(this.type, v.getType());
+        String vType = v.getType(); // Assumes Vehicle class returns "Car", "Motorcycle", "SUV"
 
-        /* // OPTION 2: The Manual Fix (If you don't want to link files)
-        // Just un-comment this if Option 1 gives errors.
-        
-        String vType = v.getType(); 
-
-        switch (this.type) {
-            case "Compact":
-                return vType.equalsIgnoreCase("Motorcycle") || vType.equalsIgnoreCase("Bicycle");
-
-            case "Regular":
-                return vType.equalsIgnoreCase("Car") || vType.equalsIgnoreCase("SUV") || vType.equalsIgnoreCase("VIP Car");
-
-            case "Handicapped":
-                return true; // Visible to all (Honor system)
-
-            case "Reserved":
-                return true; // <--- CHANGED: Now visible to all cars!
-
-            default:
-                return false;
-        }
-        */
-    }
-
-    public boolean isOccupied() {
-        return isOccupied;
-    }
-
-    public String getSpotID() {
-        return spotID;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public double getHourlyRate() {
-        return hourlyRate;
-    }
-
-    // CRITICAL: Logic to check if a vehicle fits in this spot
-    /*public boolean isSuitableFor(Vehicle v) {
-        String vType = v.getType();
-
-        // 1. Motorcycle spots are ONLY for Motorcycles
-        if (this.type.equals("Motorcycle")) {
-            return vType.equals("Motorcycle");
+        // Rule 1: Handicapped Spots
+        // Technically only for Handicapped Vehicles (checked via permit in UI)
+        if (this.type.equals("Handicapped")) {
+            return vType.equals("Handicapped Vehicle"); 
         }
 
-        // 2. Compact spots are ONLY for Cars (Motorcycles/SUVs usually don't park here in this logic)
+        // Rule 2: Compact Spots [cite: 42, 57, 58]
+        // "Compact: For small vehicles (motorcycles, bicycles)" AND "Car - Can park in Compact"
         if (this.type.equals("Compact")) {
-            return vType.equals("Car");
+            return vType.equals("Motorcycle") || vType.equals("Car");
         }
 
-        // 3. Regular spots fit Cars and SUVs
+        // Rule 3: Regular Spots [cite: 58, 59]
+        // "Regular: For regular cars" AND "SUV - Can park in Regular"
         if (this.type.equals("Regular")) {
             return vType.equals("Car") || vType.equals("SUV");
         }
-        
-        // 4. Handicapped spots (Simplified: assuming any vehicle with permit, handled by UI logic)
-        // For now, allow any vehicle type if the spot is Handicapped, 
-        // assuming the UI checked for the permit.
-        return true; 
-    }*/
+
+        // Rule 4: Reserved Spots [cite: 44]
+        // Usually requires specific permission, but physically any car/SUV fits.
+        // We will allow logic to pass here, but UI should check for "VIP Status".
+        if (this.type.equals("Reserved")) {
+            return !vType.equals("Motorcycle"); // Assuming bikes don't use VIP spots
+        }
+
+        return false; 
+    }
 
     public void park(Vehicle v) {
         this.currentVehicle = v;
         this.isOccupied = true;
-    }
-
-    public Vehicle getCurrentVehicle() {
-        return currentVehicle;
-    }
-
-    public Vehicle getVehicle() {
-        return this.currentVehicle;
     }
 
     public void removeVehicle() {
