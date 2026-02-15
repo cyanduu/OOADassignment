@@ -1,8 +1,7 @@
-import javax.swing.*;
 import java.awt.*;
 import java.text.SimpleDateFormat;
-import java.util.List;
 import java.util.Date;
+import javax.swing.*;
 
 public class ExitPanel extends JPanel {
     private JTextField textSearchPlate;
