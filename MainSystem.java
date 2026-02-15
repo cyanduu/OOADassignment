@@ -15,6 +15,8 @@ public class MainSystem {
         frame.setSize(1100, 750); // Big enough for tables
         frame.setLocationRelativeTo(null); // Center on screen
 
+        DatabaseHelper.initializeDatabase();
+
         // 2. Initialize the Backend (Singleton)
         ParkingLot lot = ParkingLot.getInstance();
         System.out.println("System: Backend Initialized.");
@@ -45,4 +47,5 @@ public class MainSystem {
         
         System.out.println("System: GUI Launched Successfully!");
     }
+
 }

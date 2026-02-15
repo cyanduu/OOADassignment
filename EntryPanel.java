@@ -68,8 +68,9 @@ public class EntryPanel extends JPanel {
                 "<li><b>Floors 2 & 3 (Standard):</b> RM 5.00 / hour.<br><i>(Open to all standard vehicles)</i></li>" +
                 "<li><b>Floor 4 (Compact):</b> RM 2.00 / hour.<br><i>(Motorcycles & Compact Cars only)</i></li>" +
                 "</ul>" +
-
-                "<hr>" +
+                "<b>2. VIP ACCESS</b>" +
+                "<p>VIP spots are reserved (S01-S15). Unauthorized parking will incur fines.</p>" +
+                "</body></html>" +
 
                 // SECTION 2: FINES
                 "<b>2. VIOLATION POLICY</b>" +
