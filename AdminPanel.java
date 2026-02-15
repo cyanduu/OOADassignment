@@ -55,6 +55,70 @@ public class AdminPanel extends JPanel implements ParkingObserver {
         controlsPanel.add(schemeSelector);
         add(controlsPanel, BorderLayout.SOUTH);
 
+        // Inside AdminPanel.java constructor
+
+// --- NEW SECTION: SQL Database Registration ---
+JPanel sqlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+sqlPanel.setBorder(BorderFactory.createTitledBorder("Register Handicapped Permit (SQL)"));
+
+JTextField txtPlateRegister = new JTextField(10);
+JButton btnRegister = new JButton("Save to Database");
+
+btnRegister.addActionListener(e -> {
+    String plate = txtPlateRegister.getText();
+    if (plate.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Please enter a plate number.");
+        return;
+    }
+    
+    // Call the SQL Insert method
+    boolean success = DatabaseHelper.registerHandicappedPlate(plate);
+    if (success) {
+        JOptionPane.showMessageDialog(this, "Plate " + plate.toUpperCase() + " registered successfully!");
+        txtPlateRegister.setText("");
+    } else {
+        JOptionPane.showMessageDialog(this, "Error: Plate already exists or database error.");
+    }
+});
+
+sqlPanel.add(new JLabel("License Plate:"));
+sqlPanel.add(txtPlateRegister);
+sqlPanel.add(btnRegister);
+
+// Add the sqlPanel to your controlsPanel or main layout
+controlsPanel.add(sqlPanel);
+
+// --- NEW SECTION: SQL Reserved Registration ---
+JPanel reservedPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+reservedPanel.setBorder(BorderFactory.createTitledBorder("Register VIP Reserved Plate (SQL)"));
+
+JTextField txtReservedPlate = new JTextField(10);
+JButton btnRegisterReserved = new JButton("Save VIP Plate");
+
+btnRegisterReserved.addActionListener(e -> {
+    String plate = txtReservedPlate.getText();
+    if (plate.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Please enter a plate number.");
+        return;
+    }
+    
+    boolean success = DatabaseHelper.registerReservedPlate(plate);
+    if (success) {
+        JOptionPane.showMessageDialog(this, "VIP Plate " + plate.toUpperCase() + " registered successfully!");
+        txtReservedPlate.setText("");
+    } else {
+        JOptionPane.showMessageDialog(this, "Error: Plate already exists or database error.");
+    }
+});
+
+reservedPanel.add(new JLabel("License Plate:"));
+reservedPanel.add(txtReservedPlate);
+reservedPanel.add(btnRegisterReserved);
+
+// Don't forget to add this to your layout!
+// If you have a main 'controlsPanel', add it there:
+controlsPanel.add(reservedPanel);
+
         // Initial refresh
         onParkingDataChanged();
     }

@@ -1,5 +1,7 @@
 import java.awt.*;
-import javax.swing.*;
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Date;
 
 public class ExitPanel extends JPanel {
     private JTextField textSearchPlate;
@@ -10,6 +12,8 @@ public class ExitPanel extends JPanel {
     private ParkingSpot foundSpot;
     private double hourlyFee;
     private double unpaidFines;
+    private double hoursParked;
+    private long exitTimeMillis;
     private double totalAmountDue;
 
     public ExitPanel() {
@@ -67,56 +71,70 @@ public class ExitPanel extends JPanel {
         Vehicle v = foundSpot.getCurrentVehicle(); // You added this to ParkingSpot earlier!
 
         // 2. Calculate Duration
-        long durationMs = System.currentTimeMillis() - v.getEntryTime();
-        double hours = durationMs / (1000.0 * 60 * 60);
-        if (hours < 0.01) hours = 1.0; // Minimum 1 hour simulation
+        long entryTime = v.getEntryTime();
+        exitTimeMillis = System.currentTimeMillis();
+        double durationMs = exitTimeMillis - entryTime;
+        hoursParked = durationMs / (1000.0 * 60 * 60);
+        if (hoursParked < 0.01) hoursParked = 1.0; // Minimum 1 hour
 
         // 3. Setup flags for Member 2's logic
         // (In a real app, you'd have a checkbox for 'Card Presented', assuming false for now)
-        boolean hasCard = false; 
+        boolean hasCard = DatabaseHelper.hasHandicappedPermit(plate); // Check if they have a handicapped permit for discounts
         // Check if they parked in a Reserved spot without being a "Reserved" vehicle (Example logic)
-        boolean isReservedViolation = foundSpot.getType().equalsIgnoreCase("Reserved"); 
-
-        // 4. CALL MEMBER 2's CODE
-        double parkingFee = FineManager.calculateParkingFee(
-            hours, 
-            foundSpot.getHourlyRate(), 
-            foundSpot.getType(), 
-            hasCard
-        );
+        boolean isReservedSpot = foundSpot.getType().equalsIgnoreCase("Reserved"); 
+        boolean hasVIPPermit = DatabaseHelper.hasReservedPermit(plate); // Check if they have a reserved permit
+        boolean isReservedViolation = isReservedSpot && !hasVIPPermit;
         
-        // Calculate Overstay/Violation Fines
+        // 4. Calculate Costs
+        double rate = foundSpot.getHourlyRate();
+        double parkingFee = FineManager.calculateParkingFee(hoursParked, rate, foundSpot.getType(), hasCard);
+        double newFines = FineManager.calculateFine(hoursParked, isReservedViolation);
+        double oldDebts = FineManager.getUnpaidFines(plate);
+        totalAmountDue = parkingFee + newFines + oldDebts;
+        
+        /*// Calculate Overstay/Violation Fines
         double newFines = FineManager.calculateFine(hours, isReservedViolation);
         
         // Get Old Debts
         unpaidFines = FineManager.getUnpaidFines(plate);
 
         // Total
-        totalAmountDue = parkingFee + newFines + unpaidFines;
+        totalAmountDue = parkingFee + newFines + unpaidFines;*/
 
-        // 5. Show Details
-        String invoice = String.format("""
-                                       === EXIT BILL ===
-                                       License Plate: %s
-                                       Spot ID:       %s (%s)
-                                       ------------------------
-                                       Duration:      %.2f hrs
-                                       Parking Fee:   RM %.2f
-                                       New Fines:     RM %.2f
-                                       Old Debts:     RM %.2f
-                                       ------------------------
-                                       TOTAL DUE:     RM %.2f""",
-            plate, 
-            foundSpot.getSpotID(), 
-            foundSpot.getType(),
-            hours, 
-            parkingFee,
-            newFines,
-            unpaidFines, 
-            totalAmountDue
-        );
+        // 5. Format Dates
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+        String strEntry = sdf.format(new Date(entryTime));
+        String strExit = sdf.format(new Date(exitTimeMillis));
 
-        textReceiptArea.setText(invoice);
+        // 6. Generate Invoice Text
+        StringBuilder sb = new StringBuilder();
+        sb.append("========== PARKING INVOICE ==========\n");
+        sb.append(String.format("License Plate:   %s\n", plate));
+        sb.append(String.format("Spot ID:         %s (%s)\n", foundSpot.getSpotID(), foundSpot.getType()));
+        sb.append("-------------------------------------\n");
+        sb.append(String.format("Entry Time:      %s\n", strEntry));
+        sb.append(String.format("Exit Time:       %s\n", strExit));
+        sb.append(String.format("Duration:        %.2f Hours\n", hoursParked));
+        sb.append("-------------------------------------\n");
+        
+        // Fee Breakdown
+        int roundedHours = (int) Math.ceil(hoursParked);
+        if (roundedHours == 0) roundedHours = 1;
+        sb.append(String.format("Parking Fee:     RM %6.2f\n", parkingFee));
+        sb.append(String.format("  (Rate: %d hrs x RM %.2f)\n", roundedHours, rate));
+        
+        if (newFines > 0) {
+            sb.append(String.format("Violation Fine:  RM %6.2f\n", newFines));
+        }
+        if (oldDebts > 0) {
+            sb.append(String.format("Prev. Unpaid:    RM %6.2f\n", oldDebts));
+        }
+        
+        sb.append("-------------------------------------\n");
+        sb.append(String.format("TOTAL AMOUNT:    RM %6.2f\n", totalAmountDue));
+        sb.append("=====================================");
+
+        textReceiptArea.setText(sb.toString());
         buttonPay.setEnabled(true);
     }
 
@@ -124,30 +142,52 @@ public class ExitPanel extends JPanel {
     private void processPayment() {
         if (foundSpot == null) return;
 
-        // Step 7: Accept Payment (Simulated)
-        int choice = JOptionPane.showConfirmDialog(this, 
-            "Total Amount: RM " + String.format("%.2f", totalAmountDue) + "\nConfirm Payment?", 
-            "Payment", JOptionPane.YES_NO_OPTION);
+        // 1. Select Payment Method
+        String[] options = {"Cash", "Credit Card"};
+        int response = JOptionPane.showOptionDialog(this, 
+                "Select Payment Method for RM " + String.format("%.2f", totalAmountDue), 
+                "Payment Gateway", 
+                JOptionPane.DEFAULT_OPTION, 
+                JOptionPane.QUESTION_MESSAGE, 
+                null, options, options[0]);
 
-        if (choice == JOptionPane.YES_OPTION) {
-            // Update Revenue in Backend
-            ParkingLot.getInstance().addRevenue(totalAmountDue);
+        if (response < 0) return; // User cancelled
+        String paymentMethod = options[response];
 
-            // Step 8: Mark spot as available
-            ParkingLot.getInstance().removeVehicle(foundSpot.getSpotID());
+        // --- CRITICAL FIX START ---
+        
+        // Step A: Save the data we need BEFORE removing the car
+        Vehicle v = foundSpot.getCurrentVehicle();
+        String plateToClear = v.getLicensePlate(); 
 
-            // Step 9: Generate Exit Receipt
-            String receipt = textReceiptArea.getText().replace("=== EXIT BILL ===", "=== PAID RECEIPT ===");
-            receipt += "\n\n[PAID] Thank you for visiting!";
-            textReceiptArea.setText(receipt);
-            
-            JOptionPane.showMessageDialog(this, "Payment Successful. Gate Opening...");
+        // Step B: Now it is safe to remove the car from the backend
+        ParkingLot.getInstance().addRevenue(totalAmountDue);
+        ParkingLot.getInstance().removeVehicle(foundSpot.getSpotID());
 
-            // Reset UI for next customer
-            textSearchPlate.setText("");
-            buttonPay.setEnabled(false);
-            foundSpot = null;
-        }
+        // Step C: Clear the fines using the saved string
+        FineManager.clearFines(plateToClear); 
+        
+        // --- CRITICAL FIX END ---
 
+        // 3. Generate Final Receipt
+        String previousText = textReceiptArea.getText();
+        String receipt = previousText.replace("========== PARKING INVOICE ==========", "========== OFFICIAL RECEIPT ==========");
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n\nPAYMENT DETAILS:\n");
+        sb.append(String.format("Method:          %s\n", paymentMethod));
+        sb.append(String.format("Amount Paid:     RM %6.2f\n", totalAmountDue));
+        sb.append("Balance Due:     RM   0.00\n"); 
+        sb.append("\n      THANK YOU FOR VISITING!      \n");
+        sb.append("=====================================");
+
+        textReceiptArea.setText(receipt + sb.toString());
+        
+        JOptionPane.showMessageDialog(this, "Payment Successful (" + paymentMethod + "). Gate Opening...");
+
+        // Reset UI
+        textSearchPlate.setText("");
+        buttonPay.setEnabled(false);
+        foundSpot = null;
     }
 }
