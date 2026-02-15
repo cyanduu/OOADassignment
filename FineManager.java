@@ -135,16 +135,34 @@ public class FineManager {
     // --- 5. VEHICLE SUITABILITY CHECK (Requirement) ---
     // Used by Member 1 (ParkingLot) or Member 3 (UI)
     public static boolean isVehicleAllowed(String spotType, String vehicleType) {
+        // 1. Motorcycle Spots: STRICT (Cars physically don't fit)
         if (spotType.equalsIgnoreCase("Motorcycle")) {
             return vehicleType.equalsIgnoreCase("Motorcycle");
         }
+
+        // 2. Compact Spots: STRICT (Big cars don't fit)
         if (spotType.equalsIgnoreCase("Compact")) {
-            return vehicleType.equalsIgnoreCase("Car");
+            return vehicleType.equalsIgnoreCase("Motorcycle") || vehicleType.equalsIgnoreCase("Car");
         }
+
+        // 3. Regular Spots: (No Motorcycles)
         if (spotType.equalsIgnoreCase("Regular")) {
-            // Allows Car AND SUV
-            return vehicleType.equalsIgnoreCase("Car") || vehicleType.equalsIgnoreCase("SUV");
+            return !vehicleType.equalsIgnoreCase("Motorcycle");
         }
-        return true; // "Reserved" or "Handicapped" handled by Permit logic
+
+        // 4. Reserved / VIP Spots: ALLOW ALL (Unhide them!)
+        // We return 'true' so the spot shows up in the list.
+        // The 'ExitPanel' will handle the RM 50 fine if they aren't actually VIP.
+        if (spotType.equalsIgnoreCase("Reserved")) {
+            return true; 
+        }
+
+        // 5. Handicapped: ALLOW ALL (Optional)
+        // If you want normal people to see these too:
+        if (spotType.equalsIgnoreCase("Handicapped")) {
+            return true; 
+        }
+
+        return true; 
     }
 }

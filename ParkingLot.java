@@ -98,7 +98,16 @@ public class ParkingLot implements Serializable {
         ParkingSpot spot = findAvailableSpot(v);
         if (spot != null) {
             spot.park(v);
-            Ticket ticket = new Ticket(v.getLicensePlate(), spot.getSpotID(), v.getEntryTime());
+            
+            // UPDATE 1: Passing extra details to Ticket
+            Ticket ticket = new Ticket(
+                v.getLicensePlate(), 
+                spot.getSpotID(), 
+                spot.getType(),      // Spot Type
+                v.getType(),         // Vehicle Type
+                v.getEntryTime()
+            );
+            
             notifyObservers();
             return ticket;
         }
@@ -111,7 +120,16 @@ public class ParkingLot implements Serializable {
             if (spot.getSpotID().equals(spotID)) {
                 if (!spot.isOccupied() && spot.isSuitableFor(v)) {
                     spot.park(v);
-                    Ticket ticket = new Ticket(v.getLicensePlate(), spot.getSpotID(), v.getEntryTime());
+                    
+                    // UPDATE 2: Passing extra details to Ticket
+                    Ticket ticket = new Ticket(
+                        v.getLicensePlate(), 
+                        spot.getSpotID(), 
+                        spot.getType(),      // Spot Type
+                        v.getType(),         // Vehicle Type
+                        v.getEntryTime()
+                    );
+                    
                     notifyObservers();
                     return ticket;
                 }
@@ -152,4 +170,4 @@ public class ParkingLot implements Serializable {
         }
     }
 
-} // <--- FINAL CLOSING BRACE (Ensure nothing is after this)
+}
