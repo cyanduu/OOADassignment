@@ -17,31 +17,33 @@ public class ParkingSpot implements Serializable {
     // --- LOGIC: CHECK IF VEHICLE FITS ---
     public boolean isSuitableFor(Vehicle v) {
         if (v == null) return false;
-        String vType = v.getType(); // "Car", "Motorcycle", "SUV", "Bicycle", "VIP"
+        
+        // OPTION 1: The Best Way (Link to Member 2's Logic)
+        // This ensures both files always agree.
+        return FineManager.isVehicleAllowed(this.type, v.getType());
+
+        /* // OPTION 2: The Manual Fix (If you don't want to link files)
+        // Just un-comment this if Option 1 gives errors.
+        
+        String vType = v.getType(); 
 
         switch (this.type) {
             case "Compact":
-                // Requirement: For small vehicles (motorcycles, bicycles)
                 return vType.equalsIgnoreCase("Motorcycle") || vType.equalsIgnoreCase("Bicycle");
 
             case "Regular":
-                // Requirement: For regular cars (and usually SUVs fit here too)
-                return vType.equalsIgnoreCase("Car") || vType.equalsIgnoreCase("SUV");
+                return vType.equalsIgnoreCase("Car") || vType.equalsIgnoreCase("SUV") || vType.equalsIgnoreCase("VIP Car");
 
             case "Handicapped":
-                // Requirement: Reserved for handicapped.
-                // Physically, any car fits, but logically only those with permits.
-                // We allow all to "fit" physically, but billing handles the "Free" part.
-                return true; 
+                return true; // Visible to all (Honor system)
 
             case "Reserved":
-                // Requirement: For VIP customers
-                // Only allow if the vehicle is explicitly marked as VIP/Reserved
-                return vType.equalsIgnoreCase("VIP");
+                return true; // <--- CHANGED: Now visible to all cars!
 
             default:
                 return false;
         }
+        */
     }
 
     public boolean isOccupied() {
