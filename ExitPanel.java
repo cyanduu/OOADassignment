@@ -74,10 +74,12 @@ public class ExitPanel extends JPanel {
 
         // 3. Setup flags for Member 2's logic
         // (In a real app, you'd have a checkbox for 'Card Presented', assuming false for now)
-        boolean hasCard = false; 
+        boolean hasCard = DatabaseHelper.hasHandicappedPermit(plate); // Check if they have a handicapped permit for discounts
         // Check if they parked in a Reserved spot without being a "Reserved" vehicle (Example logic)
-        boolean isReservedViolation = foundSpot.getType().equalsIgnoreCase("Reserved"); 
-
+        boolean isReservedSpot = foundSpot.getType().equalsIgnoreCase("Reserved"); 
+        boolean hasVIPPermit = DatabaseHelper.hasReservedPermit(plate); // Check if they have a reserved permit
+        boolean isReservedViolation = isReservedSpot && !hasVIPPermit;
+        
         // 4. CALL MEMBER 2's CODE
         double parkingFee = FineManager.calculateParkingFee(
             hours, 
