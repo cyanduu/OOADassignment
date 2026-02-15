@@ -29,7 +29,7 @@ public class EntryPanel extends JPanel {
 
         // 2. Vehicle Type
         formPanel.add(new JLabel("Select Vehicle Type:"));
-        String[] types = {"Select Vehicle Type:-", "Car", "Motorcycle", "SUV/Truck", "Handicapped Vehicle", "VIP Car"};
+        String[] types = {"Select Vehicle Type:-", "Car", "Motorcycle", "SUV/Truck", "Handicapped Vehicle"};
         ComboType = new JComboBox<>(types);
         formPanel.add(ComboType);
 

@@ -10,7 +10,7 @@ public class AdminPanel extends JPanel implements ParkingObserver {
     private JTable vehicleTable;
     private DefaultTableModel tableModel;
     private ParkingLot lot;
-
+//
     // Fix: Pass the loaded 'lot' object here
     public AdminPanel(ParkingLot lot) {
         this.lot = lot;
