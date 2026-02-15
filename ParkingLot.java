@@ -38,12 +38,28 @@ public class ParkingLot implements Serializable {
                 String type = "Regular";
                 double rate = 5.0;
 
+                // --- FLOOR 1: VIP & HANDICAPPED ---
                 if (f == 1) {
-                    if (s <= 5) { type = "Handicapped"; rate = 2.0; } 
-                    else { type = "Reserved"; rate = 10.0; }
-                } else if (f == 4) {
-                    type = "Compact"; rate = 2.0;
+                    // Requirement: "VIP spot is more than handicapped"
+                    // Requirement: "example s01-s05 is reserve for VIP"
+                    
+                    // Spots 1 to 15: RESERVED (VIP) -> 15 Spots
+                    if (s <= 15) { 
+                        type = "Reserved"; 
+                        rate = 10.0; 
+                    } 
+                    // Spots 16 to 20: HANDICAPPED -> 5 Spots
+                    else { 
+                        type = "Handicapped"; 
+                        rate = 2.0; 
+                    }
+                } 
+                // --- FLOOR 4: COMPACT ---
+                else if (f == 4) {
+                    type = "Compact"; 
+                    rate = 2.0;
                 }
+                // Floors 2 & 3 remain Regular (Default)
 
                 spots.add(new ParkingSpot(id, type, rate));
             }
