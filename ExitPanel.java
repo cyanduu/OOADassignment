@@ -1,6 +1,5 @@
-import javax.swing.*;
 import java.awt.*;
-import java.util.List;
+import javax.swing.*;
 
 public class ExitPanel extends JPanel {
     private JTextField textSearchPlate;
@@ -96,17 +95,17 @@ public class ExitPanel extends JPanel {
         totalAmountDue = parkingFee + newFines + unpaidFines;
 
         // 5. Show Details
-        String invoice = String.format(
-            "=== EXIT BILL ===\n" +
-            "License Plate: %s\n" +
-            "Spot ID:       %s (%s)\n" +
-            "------------------------\n" +
-            "Duration:      %.2f hrs\n" +
-            "Parking Fee:   RM %.2f\n" +
-            "New Fines:     RM %.2f\n" +
-            "Old Debts:     RM %.2f\n" +
-            "------------------------\n" +
-            "TOTAL DUE:     RM %.2f",
+        String invoice = String.format("""
+                                       === EXIT BILL ===
+                                       License Plate: %s
+                                       Spot ID:       %s (%s)
+                                       ------------------------
+                                       Duration:      %.2f hrs
+                                       Parking Fee:   RM %.2f
+                                       New Fines:     RM %.2f
+                                       Old Debts:     RM %.2f
+                                       ------------------------
+                                       TOTAL DUE:     RM %.2f""",
             plate, 
             foundSpot.getSpotID(), 
             foundSpot.getType(),
