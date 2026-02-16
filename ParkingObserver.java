@@ -1,5 +1,7 @@
-// File: ParkingObserver.java
+// Observer Interface for the Observer Pattern.
+// Components that need to update when parking data changes (like the Admin Panel) implement this.
 public interface ParkingObserver {
-    // This method is called automatically whenever the parking lot state changes
+    
+    // Called automatically by ParkingLot whenever a vehicle enters or exits.
     void onParkingDataChanged();
 }
