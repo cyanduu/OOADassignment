@@ -1,31 +1,32 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionListener;
 import java.util.List;
 
 public class EntryPanel extends JPanel {
 
     private JComboBox<String> ComboType;
     private JComboBox<String> ComboSpots;
-    private JTextField txtPlate;
-    private JButton btnPark;
+    private JTextField textPlate;
+    private JButton buttonPark;
 
     public EntryPanel() {
         // Use a Grid Layout to split the screen 50/50
         setLayout(new GridLayout(1, 2, 15, 15));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        this.setBackground(new Color(255, 255, 204)); 
 
         // --- LEFT PANEL: DRIVER INPUTS ---
         JPanel leftPanel = new JPanel(new BorderLayout(10, 10));
         leftPanel.setBorder(BorderFactory.createTitledBorder("Vehicle Entry Station"));
+        leftPanel.setBackground(new Color(240, 240, 240)); 
 
         JPanel formPanel = new JPanel(new GridLayout(6, 1, 5, 5)); // Inputs
 
         // 1. License Plate
         formPanel.add(new JLabel("Enter License Plate:"));
-        txtPlate = new JTextField();
-        txtPlate.setFont(new Font("Monospaced", Font.BOLD, 14));
-        formPanel.add(txtPlate);
+        textPlate = new JTextField();
+        textPlate.setFont(new Font("Monospaced", Font.BOLD, 14));
+        formPanel.add(textPlate);
 
         // 2. Vehicle Type
         formPanel.add(new JLabel("Select Vehicle Type:"));
@@ -41,21 +42,23 @@ public class EntryPanel extends JPanel {
         leftPanel.add(formPanel, BorderLayout.NORTH);
 
         // Park Button (Big and Clear)
-        btnPark = new JButton("ISSUE TICKET & PARK");
-        btnPark.setFont(new Font("Arial", Font.BOLD, 14));
-        btnPark.setPreferredSize(new Dimension(100, 50));
-        leftPanel.add(btnPark, BorderLayout.SOUTH);
+        buttonPark = new JButton("ISSUE TICKET & PARK");
+        buttonPark.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        buttonPark.setBackground(new Color(144, 238, 144));
+        buttonPark.setPreferredSize(new Dimension(100, 50));
+        leftPanel.add(buttonPark, BorderLayout.SOUTH);
 
 
         // --- RIGHT PANEL: RULES & REGULATIONS (Permanent Display) ---
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setBorder(BorderFactory.createTitledBorder("Parking Regulations & Fines"));
+        rightPanel.setBackground(new Color(240, 240, 240)); 
 
         // Use JEditorPane for clean HTML formatting without "webpage" look
         JEditorPane infoPane = new JEditorPane();
         infoPane.setContentType("text/html");
         infoPane.setEditable(false);
-        infoPane.setOpaque(false); // Match background
+        infoPane.setBackground(new Color(255, 255, 204));
         
         // PROFESSIONAL, CLEAN CONTENT
         String rulesText = "<html><body style='font-family: Sans-Serif; font-size: 10px;'>" +
@@ -100,8 +103,8 @@ public class EntryPanel extends JPanel {
         // --- ACTION LISTENERS ---
         ComboType.addActionListener(e -> updateAvailableSpots());
 
-        btnPark.addActionListener(e -> {
-            String plate = txtPlate.getText().trim().toUpperCase();
+        buttonPark.addActionListener(e -> {
+            String plate = textPlate.getText().trim().toUpperCase();
             String type = (String) ComboType.getSelectedItem();
             String spotID = (String) ComboSpots.getSelectedItem();
 
@@ -121,7 +124,7 @@ public class EntryPanel extends JPanel {
                 "Ticket Issued Successfully!\n\n" + ticket.getTicketDetails(), 
                 "Access Granted", 
                 JOptionPane.INFORMATION_MESSAGE);
-                txtPlate.setText("");
+                textPlate.setText("");
                 ComboType.setSelectedIndex(0);
             } else {
                 JOptionPane.showMessageDialog(this, "Parking Failed. Spot may have been taken.", "Error", JOptionPane.ERROR_MESSAGE);

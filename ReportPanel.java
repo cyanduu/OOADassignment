@@ -1,9 +1,9 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
 public class ReportPanel extends JPanel implements ParkingObserver {
     private JLabel lblTotalRevenue;
@@ -15,32 +15,25 @@ public class ReportPanel extends JPanel implements ParkingObserver {
     private DefaultTableModel fineModel;
 
     public ReportPanel() {
-        // 1. Register as an Observer so reports update automatically
+        // 1. Register as an Observer
         ParkingLot.getInstance().addObserver(this);
 
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createTitledBorder("System Reporting & Analytics"));
 
-        // --- TABS for different reports ---
         JTabbedPane tabs = new JTabbedPane();
-
-        // TAB 1: Live Lot Status (Vehicles & Occupancy)
         tabs.addTab("Live Lot Status", createLiveStatusPanel());
-
-        // TAB 2: Financial Reports (Revenue & Fines)
         tabs.addTab("Financial Reports", createFinancialPanel());
 
         add(tabs, BorderLayout.CENTER);
 
-        // Initial Data Load
         refreshData();
     }
 
-    // --- SUB-PANEL: Live Status (Vehicles + Occupancy) ---
     private JPanel createLiveStatusPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
 
-        // 1. Occupancy Summary (Top)
+        // Occupancy Summary
         JPanel statsPanel = new JPanel(new GridLayout(2, 1, 5, 5));
         lblOccupancyRate = new JLabel("Occupancy: 0 / 0 (0%)");
         lblOccupancyRate.setFont(new Font("Arial", Font.BOLD, 16));
@@ -53,7 +46,7 @@ public class ReportPanel extends JPanel implements ParkingObserver {
         statsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         panel.add(statsPanel, BorderLayout.NORTH);
 
-        // 2. Vehicle List Table (Center)
+        // Vehicle List Table
         String[] columns = {"Spot ID", "License Plate", "Type", "Entry Time"};
         vehicleModel = new DefaultTableModel(columns, 0);
         tblVehicles = new JTable(vehicleModel);
@@ -65,11 +58,10 @@ public class ReportPanel extends JPanel implements ParkingObserver {
         return panel;
     }
 
-    // --- SUB-PANEL: Financials (Revenue + Fines) ---
     private JPanel createFinancialPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
 
-        // 1. Revenue Report (Top)
+        // Revenue Report
         JPanel revenuePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         lblTotalRevenue = new JLabel("Total Revenue Collected: RM 0.00");
         lblTotalRevenue.setFont(new Font("Arial", Font.BOLD, 18));
@@ -78,8 +70,7 @@ public class ReportPanel extends JPanel implements ParkingObserver {
         revenuePanel.setBorder(BorderFactory.createTitledBorder("Revenue Report"));
         panel.add(revenuePanel, BorderLayout.NORTH);
 
-        // 2. Fine Report (Center)
-        // Since 'FineService' is external, we simulate fetching a report here
+        // Fine Report
         String[] columns = {"License Plate", "Outstanding Amount (RM)", "Status"};
         fineModel = new DefaultTableModel(columns, 0);
         tblFines = new JTable(fineModel);
@@ -91,16 +82,15 @@ public class ReportPanel extends JPanel implements ParkingObserver {
         return panel;
     }
 
-    // --- DATA REFRESH LOGIC ---
-    // This is called automatically whenever data changes (Observer Pattern)
     @Override
     public void onParkingDataChanged() {
-        refreshData();
+        // Use invokeLater to ensure thread safety in Swing
+        SwingUtilities.invokeLater(this::refreshData);
     }
 
     private void refreshData() {
         ParkingLot lot = ParkingLot.getInstance();
-        List<ParkingSpot> spots = lot.getAllSpots(); //
+        List<ParkingSpot> spots = lot.getAllSpots();
 
         // 1. Update Occupancy
         long occupiedCount = spots.stream().filter(ParkingSpot::isOccupied).count();
@@ -114,36 +104,32 @@ public class ReportPanel extends JPanel implements ParkingObserver {
         lblTotalRevenue.setText(String.format("Total Revenue Collected: RM %.2f", lot.getTotalRevenue()));
 
         // 3. Update Vehicle Table
-        vehicleModel.setRowCount(0); // Clear old data
+        vehicleModel.setRowCount(0); 
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM HH:mm:ss"); // Cleaner date format
+        
         for (ParkingSpot s : spots) {
             if (s.isOccupied()) {
-                Vehicle v = s.getCurrentVehicle(); //
+                Vehicle v = s.getCurrentVehicle();
                 vehicleModel.addRow(new Object[]{
                     s.getSpotID(),
                     v.getLicensePlate(),
                     v.getType(),
-                    new java.util.Date(v.getEntryTime()).toString()
+                    sdf.format(new java.util.Date(v.getEntryTime()))
                 });
             }
         }
 
-        // 4. Update Fine Report
-        // In a real system, this would come from a database. 
-        // Here we simulate it or fetch from FineService if you implemented it.
+        // 4. Update Fine Report (Now using REAL data)
         updateFineReport();
     }
 
     private void updateFineReport() {
         fineModel.setRowCount(0);
         
-        // Mock Data for demonstration (Replace with FineService.getAllFines() if available)
-        // This fulfills the "Fine report" requirement visually
-        Map<String, Double> mockFines = new HashMap<>();
-        mockFines.put("BAD-1234", 50.0);
-        mockFines.put("LATE-99", 25.50);
-        mockFines.put("SPEEDY-1", 150.00);
+        // Fetch Real Data from FineManager
+        Map<String, Double> realFines = FineManager.getAllOutstandingFines();
 
-        for (Map.Entry<String, Double> entry : mockFines.entrySet()) {
+        for (Map.Entry<String, Double> entry : realFines.entrySet()) {
             fineModel.addRow(new Object[]{
                 entry.getKey(),
                 String.format("%.2f", entry.getValue()),

@@ -1,79 +1,109 @@
+import javax.swing.*;
+import java.util.Map;
 import java.util.List;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import javax.swing.*;
 
 public class MainSystem {
     public static void main(String[] args) {
-        // 1. Setup the Main Window Frame
+        // 1. Setup the Look and Feel
         try {
-            // Make it look like the native OS (Windows/Mac)
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        JFrame frame = new JFrame("Parking Management System (Team Project)");
-        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        frame.setSize(1100, 750); // Big enough for tables
-        frame.setLocationRelativeTo(null); // Center on screen
-
+        // 2. Initialize the Backend
         DatabaseHelper.initializeDatabase();
-
-        // 2. Initialize the Backend (Singleton)
         ParkingLot lot = ParkingLot.getInstance();
         System.out.println("System: Backend Initialized.");
 
-        // --- NEW STEP: LOAD PREVIOUS CARS ---
-        // Ask DataManager to find the saved file
+        // --- STEP A: LOAD PREVIOUS STATE (From your code) ---
+        // This restores the cars that were parked when you last closed the app
         List<ParkingSpot> savedSpots = DataManager.loadState();
-
-        // If the file exists and has data, overwrite the empty spots with the saved spots
         if (savedSpots != null && !savedSpots.isEmpty()) {
             lot.setSpots(savedSpots); 
+            System.out.println("System: Previous parking data loaded.");
         }
 
-        // 3. Create the Tabbed Interface
+        Map<String, Double> savedFines = DataManager.loadFines();
+        if (savedFines != null && !savedFines.isEmpty()) {
+            FineManager.setOutstandingFines(savedFines);
+            System.out.println("System: Previous fine data loaded.");
+        }
+
+        // --- STEP B: ROLE SELECTION (From previous requirement) ---
+        String[] options = {"Driver / User", "Administrator"};
+        int roleChoice = JOptionPane.showOptionDialog(
+            null, 
+            "Welcome to Parking Management System.\nPlease select your access mode:", 
+            "System Login", 
+            JOptionPane.DEFAULT_OPTION, 
+            JOptionPane.QUESTION_MESSAGE, 
+            null, options, options[0]
+        );
+
+        if (roleChoice == -1) System.exit(0); // Exit if user clicks X
+
+        boolean isAdmin = (roleChoice == 1);
+
+        // Security Check for Admin
+        if (isAdmin) {
+            String password = JOptionPane.showInputDialog(null, "Enter Admin Password:");
+            if (password != null && password.equals("CANDU")) {
+                JOptionPane.showMessageDialog(null, "Access Granted. Welcome Admin.");
+            } else {
+                JOptionPane.showMessageDialog(null, "Access Denied!", "Security Alert", JOptionPane.ERROR_MESSAGE);
+                System.exit(0);
+            }
+        }
+
+        // 3. Create the Main Window
+        JFrame frame = new JFrame(isAdmin ? "Parking Lot Management System - ADMIN" : "Parking Lot Management System - DRIVER");
+        
+        // IMPORTANT: We use DO_NOTHING_ON_CLOSE so we can handle the saving manually below
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        
+        frame.setSize(1100, 750);
+        frame.setLocationRelativeTo(null); 
+
+        //Create Tabs based on Role
         JTabbedPane tabs = new JTabbedPane();
 
-        // --- TAB 1: VEHICLE ENTRY (Member 3) ---
-        // This panel lets cars enter and generates tickets
+        //All User's POV
         tabs.addTab("Entry Station", new EntryPanel());
-
-        // --- TAB 2: VEHICLE EXIT (Member 2/3) ---
-        // This panel calculates fees using FineManager
         tabs.addTab("Exit Station", new ExitPanel());
 
-        // --- TAB 3: ADMIN DASHBOARD (Member 4) ---
-        // This panel shows live stats and revenue
-        // Note: passing 'lot' because your AdminPanel constructor requires it
-        tabs.addTab("Admin Dashboard", new AdminPanel(lot));
+        //Admin's POV
+        if (isAdmin) {
+            tabs.addTab("Admin Dashboard", new AdminPanel(lot));
+            tabs.addTab("Reports & Analytics", new ReportPanel());
+        }
 
-        // --- TAB 4: REPORTS & ANALYTICS (Member 1) ---
-        // This panel shows reports and analytics
-        tabs.addTab("Reports & Analytics", new ReportPanel());
-
-        // 4. Final Setup
         frame.add(tabs);
 
-        // --- NEW STEP: SAVE CARS WHEN CLOSING ---
-        // This listens for the user clicking the "X" button on the window
+        //STEP C: SAVE STATE ON CLOSE
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                System.out.println("System: Saving data before shutting down...");
+                int confirm = JOptionPane.showConfirmDialog(frame, 
+                    "Are you sure you want to exit?", "Confirm Exit", 
+                    JOptionPane.YES_NO_OPTION);
                 
-                // Save all currently parked cars to the .dat file
-                DataManager.saveState(lot.getAllSpots()); 
-                
-                // Now it is safe to completely shut down the app
-                System.exit(0); 
+                if (confirm == JOptionPane.YES_OPTION) {
+                    System.out.println("System: Saving data before shutting down...");
+                    
+                    //Save all currently parked cars and fines to file
+                    DataManager.saveState(ParkingLot.getInstance().getAllSpots()); 
+                    DataManager.saveFines(FineManager.getAllOutstandingFines());
+                    
+                    System.out.println("System: Data saved. Goodbye!");
+                    System.exit(0); 
+                }
             }
         });
 
         frame.setVisible(true);
-        
         System.out.println("System: GUI Launched Successfully!");
     }
-
 }
