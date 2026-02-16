@@ -16,9 +16,11 @@ public class ParkingLot implements Serializable {
     
     // Observers list is transient so it is NOT saved to the file (avoids serialization errors)
     private transient List<ParkingObserver> observers = new ArrayList<>();
+    private List<Transaction> transactionHistory;
 
     private ParkingLot() {
         this.spots = new ArrayList<>();
+        this.transactionHistory = new ArrayList<>();
         this.observers = new ArrayList<>();
         this.totalRevenue = 0.0;
         initializeSpots();
@@ -82,8 +84,30 @@ public class ParkingLot implements Serializable {
         return getSpots();
     }
 
+    public void addTransaction(Transaction t) {
+        if (transactionHistory == null) transactionHistory = new ArrayList<>();
+        transactionHistory.add(t);
+        notifyObservers();
+    }
+
     public double getTotalRevenue() {
-        return totalRevenue;
+        if (transactionHistory == null) return 0.0;
+        
+        // Sum up all transactions in the list
+        double sum = 0;
+        for (Transaction t : transactionHistory) {
+            sum += t.getAmount();
+        }
+        return sum;
+    }
+
+    public List<Transaction> getHistory() {
+        if (transactionHistory == null) transactionHistory = new ArrayList<>();
+        return transactionHistory;
+    }
+    
+    public void setHistory(List<Transaction> loadedHistory) {
+        this.transactionHistory = loadedHistory;
     }
 
     public void addRevenue(double amount) {

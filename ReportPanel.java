@@ -1,22 +1,22 @@
 import java.awt.*;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
 public class ReportPanel extends JPanel implements ParkingObserver {
-    private JLabel lblTotalRevenue;
-    private JLabel lblOccupancyRate;
+    private JLabel labelTotalRevenue;
+    private JLabel labelOccupancyRate;
     private JProgressBar progressOccupancy;
-    private JTable tblVehicles;
+    private JTable tableVehicles;
     private DefaultTableModel vehicleModel;
-    private JTable tblFines;
+    private JTable tableFines;
     private DefaultTableModel fineModel;
+    private DefaultTableModel historyModel;
 
     public ReportPanel() {
-        // 1. Register as an Observer to receive real-time updates
+        //1. Register as an Observer to receive real-time updates
         ParkingLot.getInstance().addObserver(this);
 
         setLayout(new BorderLayout(10, 10));
@@ -28,90 +28,102 @@ public class ReportPanel extends JPanel implements ParkingObserver {
 
         add(tabs, BorderLayout.CENTER);
 
-        // Initial Data Load
+        //Initial Data Load
         refreshData();
     }
 
-    // --- SUB-PANEL: LIVE STATUS ---
+    //SUB-PANEL: LIVE STATUS
     private JPanel createLiveStatusPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
 
-        // Occupancy Summary (Top)
+        //Occupancy Summary (Top)
         JPanel statsPanel = new JPanel(new GridLayout(2, 1, 5, 5));
-        lblOccupancyRate = new JLabel("Occupancy: 0 / 0 (0%)");
-        lblOccupancyRate.setFont(new Font("Arial", Font.BOLD, 16));
+        labelOccupancyRate = new JLabel("Occupancy: 0 / 0 (0%)");
+        labelOccupancyRate.setFont(new Font("Arial", Font.BOLD, 16));
         
         progressOccupancy = new JProgressBar(0, 100);
         progressOccupancy.setStringPainted(true);
 
-        statsPanel.add(lblOccupancyRate);
+        statsPanel.add(labelOccupancyRate);
         statsPanel.add(progressOccupancy);
         statsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         panel.add(statsPanel, BorderLayout.NORTH);
 
-        // Vehicle List Table (Center)
+        //Vehicle List Table (Center)
         String[] columns = {"Spot ID", "License Plate", "Type", "Entry Time"};
         vehicleModel = new DefaultTableModel(columns, 0);
-        tblVehicles = new JTable(vehicleModel);
+        tableVehicles = new JTable(vehicleModel);
         
-        JScrollPane scroll = new JScrollPane(tblVehicles);
+        JScrollPane scroll = new JScrollPane(tableVehicles);
         scroll.setBorder(BorderFactory.createTitledBorder("Vehicles Currently in Lot"));
         panel.add(scroll, BorderLayout.CENTER);
 
         return panel;
     }
 
-    // --- SUB-PANEL: FINANCIAL REPORTS ---
+    //SUB-PANEL: FINANCIAL REPORTS
+    //Make sure you have this variable declared at the top of the class!
     private JPanel createFinancialPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
 
-        // Revenue Report (Top)
+        //1. Revenue Report (Top)
         JPanel revenuePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        lblTotalRevenue = new JLabel("Total Revenue Collected: RM 0.00");
-        lblTotalRevenue.setFont(new Font("Arial", Font.BOLD, 18));
-        lblTotalRevenue.setForeground(new Color(0, 100, 0)); // Dark Green for money
-        
-        revenuePanel.add(lblTotalRevenue);
+        labelTotalRevenue = new JLabel("Total Revenue: RM 0.00");
+        labelTotalRevenue.setFont(new Font("Arial", Font.BOLD, 18));
+        labelTotalRevenue.setForeground(new Color(0, 100, 0));
+        revenuePanel.add(labelTotalRevenue);
         revenuePanel.setBorder(BorderFactory.createTitledBorder("Revenue Report"));
         panel.add(revenuePanel, BorderLayout.NORTH);
 
-        // Fine Report Table (Center)
-        String[] columns = {"License Plate", "Outstanding Amount (RM)", "Status"};
-        fineModel = new DefaultTableModel(columns, 0);
-        tblFines = new JTable(fineModel);
+        //2. Transaction History Table (New)
+        String[] historyCols = {"Time", "Plate", "Spot", "Method", "Amount (RM)"};
+        historyModel = new DefaultTableModel(historyCols, 0);
+        JTable lableHistory = new JTable(historyModel);
+        JScrollPane historyScroll = new JScrollPane(lableHistory);
+        historyScroll.setBorder(BorderFactory.createTitledBorder("Transaction History (Past & Present)"));
+
+        //3. Fine Report Table (RESTORED!)
+        String[] fineCols = {"License Plate", "Outstanding Amount (RM)", "Status"};
+        fineModel = new DefaultTableModel(fineCols, 0); //
+        tableFines = new JTable(fineModel);
+        JScrollPane fineScroll = new JScrollPane(tableFines);
+        fineScroll.setBorder(BorderFactory.createTitledBorder("Outstanding Fines Report"));
+
+        //4. Combine them (Split Pane so you see both)
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, historyScroll, fineScroll);
+        splitPane.setDividerLocation(300); // Give history half the space
         
-        JScrollPane scroll = new JScrollPane(tblFines);
-        scroll.setBorder(BorderFactory.createTitledBorder("Outstanding Fines Report"));
-        panel.add(scroll, BorderLayout.CENTER);
+        panel.add(splitPane, BorderLayout.CENTER);
 
         return panel;
     }
 
-    // --- OBSERVER TRIGGER ---
+    //OBSERVER TRIGGER
     @Override
     public void onParkingDataChanged() {
-        // Use invokeLater to ensure thread safety when updating Swing components
+        //Use invokeLater to ensure thread safety when updating Swing components
         SwingUtilities.invokeLater(this::refreshData);
     }
 
-    // --- DATA REFRESH LOGIC ---
+    //DATA REFRESH LOGIC
     private void refreshData() {
         ParkingLot lot = ParkingLot.getInstance();
         List<ParkingSpot> spots = lot.getAllSpots();
 
-        // 1. Update Occupancy Stats
+        //1. Update Occupancy Stats
         long occupiedCount = spots.stream().filter(ParkingSpot::isOccupied).count();
         int totalSpots = spots.size();
         int percent = totalSpots > 0 ? (int)((occupiedCount * 100) / totalSpots) : 0;
 
-        lblOccupancyRate.setText(String.format("Occupancy: %d / %d (%d%%)", occupiedCount, totalSpots, percent));
+        labelOccupancyRate.setText(String.format("Occupancy: %d / %d (%d%%)", occupiedCount, totalSpots, percent));
         progressOccupancy.setValue(percent);
 
-        // 2. Update Revenue Display
-        lblTotalRevenue.setText(String.format("Total Revenue Collected: RM %.2f", lot.getTotalRevenue()));
+        //2. Update Revenue Display
+        //Note: This now pulls the calculated total from your Transaction History list
+        labelTotalRevenue.setText(String.format("Total Revenue Collected: RM %.2f", lot.getTotalRevenue()));
 
-        // 3. Update Vehicle Table
-        vehicleModel.setRowCount(0); // Clear table
+        //3. Update Live Vehicle Table (Currently Parked Cars)
+        vehicleModel.setRowCount(0); 
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM HH:mm:ss"); 
         
         for (ParkingSpot s : spots) {
@@ -121,19 +133,40 @@ public class ReportPanel extends JPanel implements ParkingObserver {
                     s.getSpotID(),
                     v.getLicensePlate(),
                     v.getType(),
-                    sdf.format(new Date(v.getEntryTime()))
+                    sdf.format(new java.util.Date(v.getEntryTime()))
                 });
             }
         }
 
-        // 4. Update Fine Report
+        //4. Update Transaction History Table (Past & Present Customers)
+        //Ensure 'historyModel' was initialized in your constructor/createFinancialPanel
+        if (historyModel != null) {
+            historyModel.setRowCount(0); // Clear old data
+            List<Transaction> history = lot.getHistory();
+            
+            if (history != null) {
+                //Loop backwards so the NEWEST transaction appears at the TOP
+                for (int i = history.size() - 1; i >= 0; i--) {
+                    Transaction t = history.get(i);
+                    historyModel.addRow(new Object[]{
+                        sdf.format(t.getExitTime()),
+                        t.getPlate(),
+                        t.getSpotID(),
+                        t.getMethod(),
+                        String.format("%.2f", t.getAmount())
+                    });
+                }
+            }
+        }
+
+        //5. Update Fine Report
         updateFineReport();
     }
 
     private void updateFineReport() {
-        fineModel.setRowCount(0); // Clear table
+        fineModel.setRowCount(0); //Clear table
         
-        // Fetch Real Data from FineManager
+        //Fetch Real Data from FineManager
         Map<String, Double> realFines = FineManager.getAllOutstandingFines();
 
         for (Map.Entry<String, Double> entry : realFines.entrySet()) {

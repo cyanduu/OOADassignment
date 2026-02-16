@@ -21,11 +21,18 @@ public class MainSystem {
         // 3. Load Persistent Data (Restore state from previous session)
         
         // Load Parking Spots (Occupancy & Reservations)
+        // A. Load Parking Spots
         List<ParkingSpot> savedSpots = DataManager.loadState();
         if (savedSpots != null && !savedSpots.isEmpty()) {
-            lot.setSpots(savedSpots); 
+            lot.setSpots(savedSpots);
             System.out.println("System: Previous parking data loaded.");
         }
+
+        List<Transaction> savedHistory = DataManager.loadHistory();
+        if (savedHistory != null) {
+            lot.setHistory(savedHistory);
+            System.out.println("System: Revenue history loaded.");
+        }   
 
         // Load Financial Data (Unpaid Fines)
         Map<String, Double> savedFines = DataManager.loadFines();
@@ -81,8 +88,7 @@ public class MainSystem {
         // Admin-Only Views
         if (isAdmin) {
             tabs.addTab("Admin Dashboard", new AdminPanel(lot));
-            // Ensure you have ReportPanel.java created, otherwise remove this line
-            // tabs.addTab("Reports & Analytics", new ReportPanel()); 
+            tabs.addTab("Reports & Analytics", new ReportPanel()); 
         }
 
         frame.add(tabs);
@@ -100,7 +106,8 @@ public class MainSystem {
                     
                     // Save all currently parked cars and fines to file
                     // Note: Ensure ParkingLot has getSpots() method
-                    DataManager.saveState(ParkingLot.getInstance().getSpots()); 
+                    DataManager.saveState(ParkingLot.getInstance().getSpots());
+                    DataManager.saveHistory(ParkingLot.getInstance().getHistory()); 
                     DataManager.saveFines(FineManager.getAllOutstandingFines());
                     
                     System.out.println("System: Data saved. Goodbye!");
