@@ -132,6 +132,15 @@ public class FineManager {
         return outstandingFines.getOrDefault(plate, 0.0);
     }
 
+    public static Map<String, Double> getAllOutstandingFines() {
+        return new HashMap<>(outstandingFines);
+    }
+
+    public static void setOutstandingFines(Map<String, Double> loadedFines) {
+        outstandingFines = loadedFines;
+        System.out.println("System: Fines data loaded (" + loadedFines.size() + " records).");
+    }
+
     // --- 5. VEHICLE SUITABILITY CHECK (Requirement) ---
     // Used by Member 1 (ParkingLot) or Member 3 (UI)
     public static boolean isVehicleAllowed(String spotType, String vehicleType) {
