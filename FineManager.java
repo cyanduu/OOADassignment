@@ -3,14 +3,14 @@ import java.util.Map;
 
 public class FineManager {
 
-    // --- 1. DATA STORAGE (License Plate -> Unpaid Amount) ---
-    // Stores debts if a customer leaves without paying the fine
+    // --- 1. DATA STORAGE ---
+    // Stores debts (License Plate -> Unpaid Amount) if a customer leaves without paying
     private static Map<String, Double> outstandingFines = new HashMap<>();
 
     // --- 2. CONFIGURATION ---
     public enum FineScheme { FIXED, PROGRESSIVE, HOURLY }
     
-    // Default scheme (Admin can change this)
+    // Default scheme (Admin can change this via AdminPanel)
     private static FineScheme currentScheme = FineScheme.FIXED;
 
     public static void setFineScheme(FineScheme scheme) {
@@ -24,41 +24,26 @@ public class FineManager {
 
     // --- 3. CORE LOGIC ---
 
-    /**
-     * Calculates the standard parking fee (excluding fines).
-     * Rule: Ceiling rounding (Round UP to nearest hour).
-     */
-
-    /**
-     * Calculates fee with the Handicapped Exception.
-     * @param hours Duration of stay
-     * @param hourlyRate The spot's rate (e.g., RM 2.0)
-     * @param spotType The type of spot ("Handicapped", "Regular", etc.)
-     * @param hasHandicappedCard Boolean flag from UI
-     */
-
+    // Calculates the standard parking fee based on duration and rate.
+    // Implements ceiling rounding (e.g., 1.1 hours counts as 2 hours).
     public static double calculateParkingFee(double hours, double hourlyRate, String spotType, boolean hasHandicappedCard) {
-        // Requirement: FREE only if handicapped card holder parks in handicapped spot
+        // Exemption: Free parking for valid permit holders in Handicapped spots
         if (spotType.equalsIgnoreCase("Handicapped") && hasHandicappedCard) {
             return 0.0;
         }
-        //standard ceiling rounding
+        
+        // Standard calculation
         int roundedHours = (int) Math.ceil(hours);  
-        if (roundedHours == 0) roundedHours = 1; // Minimum 1 hour
+        if (roundedHours == 0) roundedHours = 1; // Minimum charge is 1 hour
         return roundedHours * hourlyRate;
     }
 
-
-    /**
-     * Calculates ONLY the fine amount based on the rules.
-     * Fines apply if:
-     * a) Stay > 24 hours (Overstay)
-     * b) Reserved spot violation
-     */
+    // Calculates the fine amount based on the active scheme.
+    // Fines trigger on Overstay (> 24 hours) or Reserved Spot Violations.
     public static double calculateFine(double hours, boolean isReservedViolation) {
         boolean isOverstay = hours > 24.0;
         
-        // If no rules broken, no fine.
+        // If no rules are broken, return 0
         if (!isOverstay && !isReservedViolation) {
             return 0.0;
         }
@@ -68,30 +53,30 @@ public class FineManager {
 
         switch (currentScheme) {
             case FIXED:
-                // Option A: Flat RM 50 fine
+                // Flat penalty for any violation
                 fineAmount = 50.0;
                 break;
 
             case PROGRESSIVE:
-                // Option B: Tiered fines
+                // Tiered fines: The longer the duration, the higher the penalty
                 if (hours <= 24) {
-                    fineAmount = 50.0; // Reserved violation < 24h
+                    fineAmount = 50.0; // Base fine for violation within 24h
                 } else if (hours <= 48) {
-                    fineAmount = 50.0 + 100.0; // First 24h + Next tier
+                    fineAmount = 50.0 + 100.0; // Tier 2
                 } else if (hours <= 72) {
-                    fineAmount = 50.0 + 100.0 + 150.0;
+                    fineAmount = 50.0 + 100.0 + 150.0; // Tier 3
                 } else {
-                    fineAmount = 50.0 + 100.0 + 150.0 + 200.0; // Max tier
+                    fineAmount = 50.0 + 100.0 + 150.0 + 200.0; // Max Tier
                 }
                 break;
 
             case HOURLY:
-                // Option C: RM 20 per hour for overstaying
+                // Penalty charged per hour of violation
                 if (isReservedViolation) {
-                    // If reserved violation, pay fine for WHOLE duration
+                    // Violation: Charged for the entire duration
                     fineAmount = Math.ceil(hours) * 20.0;
                 } else {
-                    // If just overstay, pay fine for EXCESS hours
+                    // Overstay: Charged only for excess hours
                     fineAmount = Math.ceil(overstayHours) * 20.0;
                 }
                 break;
@@ -99,10 +84,7 @@ public class FineManager {
         return fineAmount;
     }
 
-    /**
-     * MAIN METHOD called by ExitPanel.
-     * Returns the total Bill (Parking + New Fine + Old Debt).
-     */
+    // Helper to calculate total bill (Parking + New Fine + Previous Debts)
     public static double calculateTotalDue(String plate, double hours, double hourlyRate, boolean isReservedViolation, String spotType, boolean hasHandicappedCard) {
         double parkingFee = calculateParkingFee(hours, hourlyRate, spotType, hasHandicappedCard);
         double newFine = calculateFine(hours, isReservedViolation);
@@ -111,9 +93,9 @@ public class FineManager {
         return parkingFee + newFine + oldDebt;
     }
 
-    // --- 4. DEBT MANAGEMENT (Linked to Plate) ---
+    // --- 4. DEBT MANAGEMENT ---
 
-    // Call this if the user pays successfully
+    // Clears fines for a specific plate (used upon full payment)
     public static void clearFines(String plate) {
         if (outstandingFines.containsKey(plate)) {
             outstandingFines.remove(plate);
@@ -121,11 +103,11 @@ public class FineManager {
         }
     }
 
-    // Call this if user leaves without paying (Deferred payment)
+    // Adds a fine to the record (used when payment is deferred)
     public static void addFineToAccount(String plate, double amount) {
         double current = outstandingFines.getOrDefault(plate, 0.0);
         outstandingFines.put(plate, current + amount);
-        System.out.println("System: Fine of RM " + amount + " added to account " + plate);
+        System.out.println("System: Fine of RM " + amount + " recorded for " + plate);
     }
 
     public static double getUnpaidFines(String plate) {
@@ -141,34 +123,28 @@ public class FineManager {
         System.out.println("System: Fines data loaded (" + loadedFines.size() + " records).");
     }
 
-    // --- 5. VEHICLE SUITABILITY CHECK (Requirement) ---
-    // Used by Member 1 (ParkingLot) or Member 3 (UI)
+    // --- 5. VEHICLE SUITABILITY CHECK ---
+    // Determines if a specific vehicle type is allowed to enter a specific spot type.
     public static boolean isVehicleAllowed(String spotType, String vehicleType) {
-        // 1. Motorcycle Spots: STRICT (Cars physically don't fit)
+        // Motorcycle Spots: Strict (Cars cannot fit)
         if (spotType.equalsIgnoreCase("Motorcycle")) {
             return vehicleType.equalsIgnoreCase("Motorcycle");
         }
 
-        // 2. Compact Spots: STRICT (Big cars don't fit)
+        // Compact Spots: Strict (Large vehicles cannot fit)
         if (spotType.equalsIgnoreCase("Compact")) {
             return vehicleType.equalsIgnoreCase("Motorcycle") || vehicleType.equalsIgnoreCase("Car");
         }
 
-        // 3. Regular Spots: (No Motorcycles)
+        // Regular Spots: No Motorcycles allowed (waste of space)
         if (spotType.equalsIgnoreCase("Regular")) {
             return !vehicleType.equalsIgnoreCase("Motorcycle");
         }
 
-        // 4. Reserved / VIP Spots: ALLOW ALL (Unhide them!)
-        // We return 'true' so the spot shows up in the list.
-        // The 'ExitPanel' will handle the RM 50 fine if they aren't actually VIP.
-        if (spotType.equalsIgnoreCase("Reserved")) {
-            return true; 
-        }
-
-        // 5. Handicapped: ALLOW ALL (Optional)
-        // If you want normal people to see these too:
-        if (spotType.equalsIgnoreCase("Handicapped")) {
+        // Reserved & Handicapped Spots: 
+        // We allow all vehicles to 'select' them in the UI. 
+        // Authorization is checked at Exit, where fines are applied if the permit is missing.
+        if (spotType.equalsIgnoreCase("Reserved") || spotType.equalsIgnoreCase("Handicapped")) {
             return true; 
         }
 

@@ -1,13 +1,13 @@
-import javax.swing.*;
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import javax.swing.*;
 
 public class ExitPanel extends JPanel {
     private JTextField textSearchPlate;
     private JTextArea textReceiptArea;
     
-    // --- BUTTONS (Class Level so we can enable/disable them) ---
+    // --- BUTTONS ---
     private JButton buttonCalculate;
     private JButton buttonPayBill;
     private JButton buttonPrintReceipt;
@@ -15,18 +15,21 @@ public class ExitPanel extends JPanel {
     
     // --- LOGIC VARIABLES ---
     private ParkingSpot foundSpot;
-    private double totalAmountDue;
+    private double totalAmountDue; // Total owed (Parking + Fines + Debts)
     private double hoursParked;
     private double parkingFee;
     private double newFines;
     private double oldDebts;
     private double rate;
     private long exitTimeMillis;
-    private double amountToPay;
+    
+    // Payment State
+    private double amountToPay;    // Actual amount user is paying now
     private boolean isFineDeferred;
     private String savedPlate;       
     private long savedEntryTime;     
     private String savedMethod;
+    private String savedSpotID;
 
     public ExitPanel() {
         setLayout(new BorderLayout(10, 10));
@@ -43,12 +46,10 @@ public class ExitPanel extends JPanel {
         buttonCalculate = new JButton("Calculate Bill");
         searchPanel.add(buttonCalculate);
 
-        // Requirement: "Put Pay Bill beside Calculate Bill"
         buttonPayBill = new JButton("Pay Bill");
         buttonPayBill.setEnabled(false); 
         searchPanel.add(buttonPayBill);
 
-        // Requirement: Print Receipt Option
         buttonPrintReceipt = new JButton("Print Receipt");
         buttonPrintReceipt.setEnabled(false); 
         searchPanel.add(buttonPrintReceipt);
@@ -61,9 +62,7 @@ public class ExitPanel extends JPanel {
         textReceiptArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
         add(new JScrollPane(textReceiptArea), BorderLayout.CENTER);
 
-        
         // 3. BOTTOM PANEL: Open Gate
-        // Requirement: "Open Gate only can be pressed if user alr paid"
         buttonOpenGate = new JButton("OPEN GATE");
         buttonOpenGate.setEnabled(false); 
         buttonOpenGate.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -71,7 +70,6 @@ public class ExitPanel extends JPanel {
         buttonOpenGate.setPreferredSize(new Dimension(200, 50));
         add(buttonOpenGate, BorderLayout.SOUTH);
 
-        
         // 4. EVENT LISTENERS 
         buttonCalculate.addActionListener(e -> calculateExitDetails());
         buttonPayBill.addActionListener(e -> startPaymentProcess());
@@ -79,8 +77,7 @@ public class ExitPanel extends JPanel {
         buttonOpenGate.addActionListener(e -> openGateAndReset());
     }
 
-    
-    // LOGIC: STEP 1 - CALCULATE BILL
+    // --- LOGIC: STEP 1 - CALCULATE BILL ---
     private void calculateExitDetails() {
         String plate = textSearchPlate.getText().trim().toUpperCase();
         if (plate.isEmpty()) {
@@ -88,7 +85,7 @@ public class ExitPanel extends JPanel {
             return;
         }
 
-        // 1. Find Vehicle
+        // Find Vehicle
         foundSpot = ParkingLot.getInstance().findSpotByPlate(plate);
 
         if (foundSpot == null) {
@@ -100,41 +97,56 @@ public class ExitPanel extends JPanel {
 
         Vehicle v = foundSpot.getCurrentVehicle();
 
-        // 2. Calculate Duration
-        long entryTime = v.getEntryTime();
-        exitTimeMillis = System.currentTimeMillis();
-        double durationMs = exitTimeMillis - entryTime;
-        hoursParked = durationMs / (1000.0 * 60 * 60);
-        if (hoursParked < 0.01) hoursParked = 1.0; // Min 1 hour
+        // Save State (Critical for receipt generation later)
+        savedPlate = v.getLicensePlate();
+        savedEntryTime = v.getEntryTime();
+        savedSpotID = foundSpot.getSpotID();
 
-        // 3. Check Rules/Permits (DatabaseHelper)
-        boolean hasCard = DatabaseHelper.hasHandicappedPermit(plate);
+        // Calculate Duration
+        exitTimeMillis = System.currentTimeMillis();
+        double durationMs = exitTimeMillis - savedEntryTime;
+        
+        // --- SIMULATION ADJUSTMENT: 1 Minute = 1 Hour ---
+        // Original Math: hoursParked = durationMs / (1000.0 * 60 * 60);
+        // New Math: Dividing by 60,000ms (1 minute) so that 60 seconds of real time equals 1 hour of parking.
+        double rawHours = durationMs / (1000.0 * 60); 
+
+        // --- CEILING ROUNDING LOGIC ---
+        // Requirement: Round up to the nearest hour. (e.g., 1.1 minutes real-time becomes 2 hours simulated)
+        hoursParked = Math.ceil(rawHours);
+        
+        if (hoursParked < 1.0) hoursParked = 1.0; // Minimum charge 1 hour
+
+        // Check Permits (Database)
+        boolean hasCard = DatabaseHelper.hasHandicappedPermit(savedPlate);
         boolean isReservedSpot = foundSpot.getType().equalsIgnoreCase("Reserved");
-        boolean hasVIPPermit = DatabaseHelper.hasReservedPermit(plate);
+        boolean hasVIPPermit = DatabaseHelper.hasReservedPermit(savedPlate);
         boolean isReservedViolation = isReservedSpot && !hasVIPPermit;
         
-        // 4. Calculate Fees (FineManager)
+        // Calculate Fees (FineManager)
         rate = foundSpot.getHourlyRate();
+        
+        // Passing the rounded hoursParked to ensure billing reflects full hours
         parkingFee = FineManager.calculateParkingFee(hoursParked, rate, foundSpot.getType(), hasCard);
         newFines = FineManager.calculateFine(hoursParked, isReservedViolation);
-        oldDebts = FineManager.getUnpaidFines(plate);
+        oldDebts = FineManager.getUnpaidFines(savedPlate);
+        
         totalAmountDue = parkingFee + newFines + oldDebts;
         
-        savedPlate = plate;
-        savedEntryTime = entryTime;
+        // Initialize Payment State
         amountToPay = totalAmountDue; 
         isFineDeferred = false;
 
-        // 5. Update UI -> Show Preview Receipt
+        // Update UI -> Show Preview Receipt
         updateReceiptArea(false, null);
         
-        // State Change: Enable Payment, Disable Gate
+        // Enable Payment, Disable Gate
         buttonPayBill.setEnabled(true);
         buttonOpenGate.setEnabled(false);
         buttonPrintReceipt.setEnabled(false);
     }
 
-    //LOGIC: STEP 1.5 - ASK TO SETTLE FINES
+    // --- LOGIC: STEP 2 - ASK TO SETTLE FINES ---
     private void startPaymentProcess() {
         double totalFines = newFines + oldDebts;
 
@@ -148,30 +160,26 @@ public class ExitPanel extends JPanel {
                 JOptionPane.WARNING_MESSAGE);
 
             if (choice == JOptionPane.NO_OPTION) {
-                // USER CHOSE TO DEFER (Pay Later)
+                // User defers fines -> Pay only parking fee
                 isFineDeferred = true;
-                amountToPay = parkingFee; // Pay ONLY parking fee
+                amountToPay = parkingFee; 
             } else {
-                // USER CHOSE TO PAY ALL
+                // User pays all
                 isFineDeferred = false;
-                amountToPay = totalAmountDue; // Pay Fees + Fines
+                amountToPay = totalAmountDue; 
             }
         }
 
-        // Proceed to the normal payment popup
         showPaymentPopup();
     }
 
-    // LOGIC: STEP 2 - SHOW PAYMENT POPUP
+    // --- LOGIC: STEP 3 - SHOW PAYMENT GATEWAY ---
     private void showPaymentPopup() {
         if (foundSpot == null) return;
 
-        //Custom Layout for "Cash or Card"
         JPanel panel = new JPanel(new GridLayout(0, 1));
-
         panel.add(new JLabel("Amount to Pay: RM " + String.format("%.2f", amountToPay)));
         
-        //Show a warning if they are deferring payment
         if (isFineDeferred) {
             JLabel lblDefer = new JLabel("(Fines Deferred to Account)");
             lblDefer.setForeground(Color.RED);
@@ -200,53 +208,42 @@ public class ExitPanel extends JPanel {
         }
     }
 
-    
-    // LOGIC: STEP 3 - PROCESS PAYMENT & UPDATE RECEIPT
+    // --- LOGIC: STEP 4 - PROCESS PAYMENT & UPDATE BACKEND ---
     private void processPaymentSuccess(String method) {
-        // A. Capture Data BEFORE removing vehicle
-        Vehicle v = foundSpot.getCurrentVehicle();
-        String plate = v.getLicensePlate();
-
         savedMethod = method;
 
+        // Handle Fines Logic
         if (isFineDeferred) {
-            // User deferred -> Add NEW fines to debt, do NOT clear OLD fines
+            // User deferred -> Add NEW fines to debt, keep OLD fines
             if (newFines > 0) {
-                FineManager.addFineToAccount(plate, newFines);
+                FineManager.addFineToAccount(savedPlate, newFines);
             }
             JOptionPane.showMessageDialog(this, "Payment Approved.\nFines have been recorded for future.");
         } else {
             // User paid full -> Clear ALL fines
-            FineManager.clearFines(plate);
+            FineManager.clearFines(savedPlate);
             JOptionPane.showMessageDialog(this, "Payment Approved via "+ method +"!\nAll fines cleared.");
         }
 
-        // B. Backend Processing
-        ParkingLot.getInstance().addRevenue(totalAmountDue);
+        // Backend Processing
+        ParkingLot.getInstance().addRevenue(amountToPay);
         ParkingLot.getInstance().removeVehicle(foundSpot.getSpotID()); // Frees the spot
 
-        // C. Update Receipt to "OFFICIAL RECEIPT"
+        // Generate Official Receipt
         updateReceiptArea(true, method);
         
-        JOptionPane.showMessageDialog(this, "Payment Approved via "+ method +"!");
-
-        // D. State Change: Enable Gate & Print
+        // Enable Exit Options
         buttonPayBill.setEnabled(false);
-        buttonOpenGate.setEnabled(true);      // GATE UNLOCKED
-        buttonPrintReceipt.setEnabled(true);  // RECEIPT AVAILABLE
+        buttonOpenGate.setEnabled(true);      // Gate Unlocked
+        buttonPrintReceipt.setEnabled(true);  // Receipt Available
     }
 
-    
-    // LOGIC: STEP 4 - PRINT RECEIPT
-    
+    // --- LOGIC: STEP 5 - PRINT RECEIPT POPUP ---
     private void simulatePrintReceipt() {
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-        int roundedHours = (int) Math.ceil(hoursParked);
-        if (roundedHours == 0) roundedHours = 1;
         
         double balance = isFineDeferred ? (newFines + oldDebts) : 0.00;
 
-        // Build the text message for the Popup
         StringBuilder sb = new StringBuilder();
         sb.append("============= OFFICIAL RECEIPT =============\n");
         sb.append("Entry Time:   ").append(sdf.format(new Date(savedEntryTime))).append("\n");
@@ -265,14 +262,9 @@ public class ExitPanel extends JPanel {
         sb.append("Total Paid:   RM ").append(String.format("%6.2f", amountToPay)).append("\n");
         sb.append("Method:       ").append(savedMethod).append("\n");
         
-        if (balance > 0) {
-            sb.append("Rem. Balance: RM ").append(String.format("%6.2f", balance)).append("\n");
-        } else {
-            sb.append("Rem. Balance: RM   0.00\n");
-        }
+        sb.append("Rem. Balance: RM ").append(String.format("%6.2f", balance)).append("\n");
         sb.append("============================================");
 
-        // Show it in a Message Dialog
         JTextArea textArea = new JTextArea(sb.toString());
         textArea.setEditable(false);
         textArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
@@ -280,8 +272,7 @@ public class ExitPanel extends JPanel {
         JOptionPane.showMessageDialog(this, new JScrollPane(textArea), "Print Receipt", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    
-    // LOGIC: STEP 5 - OPEN GATE & RESET
+    // --- LOGIC: STEP 6 - OPEN GATE ---
     private void openGateAndReset() {
         JOptionPane.showMessageDialog(this, "Gate Opened. Drive Safely!", "Exit", JOptionPane.INFORMATION_MESSAGE);
         
@@ -292,64 +283,54 @@ public class ExitPanel extends JPanel {
         foundSpot = null;
     }
 
-    
-    // HELPERS
+    // --- HELPERS ---
     private void disableAllButtons() {
         buttonPayBill.setEnabled(false);
         buttonOpenGate.setEnabled(false);
         buttonPrintReceipt.setEnabled(false);
     }
 
-    private void updateReceiptArea(boolean isPaid, String method) {
-        // Fallback plate/entry logic in case vehicle is already removed
-        String plate = (foundSpot != null && foundSpot.getCurrentVehicle() != null) 
-                       ? foundSpot.getCurrentVehicle().getLicensePlate() 
-                       : textSearchPlate.getText().trim().toUpperCase();
-                       
-        long entryTime = (foundSpot != null && foundSpot.getCurrentVehicle() != null)
-                         ? foundSpot.getCurrentVehicle().getEntryTime()
-                         : System.currentTimeMillis() - (long)(hoursParked * 3600000);
-
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-        
+    // Updates the central text area.
+    // Logic differentiates between "Invoice" (Before Pay) and "Receipt" (After Pay)
+    private void updateReceiptArea(boolean isFinal, String paymentMethod) {
         StringBuilder sb = new StringBuilder();
-        sb.append(isPaid ? "========== OFFICIAL RECEIPT ==========\n" : "========== PARKING INVOICE ==========\n");
-        sb.append(String.format("License Plate:   %s\n", plate));
-        if (foundSpot != null) {
-            sb.append(String.format("Spot ID:         %s (%s)\n", foundSpot.getSpotID(), foundSpot.getType()));
-        }
-        sb.append("--------------------------------------\n");
-        sb.append(String.format("Entry Time:      %s\n", sdf.format(new Date(entryTime))));
-        sb.append(String.format("Exit Time:       %s\n", sdf.format(new Date(exitTimeMillis))));
-        sb.append(String.format("Duration:        %.2f Hours\n", hoursParked));
-        sb.append("--------------------------------------\n");
-        
-        int roundedHours = (int) Math.ceil(hoursParked);
-        if (roundedHours == 0) roundedHours = 1;
-
-        sb.append(String.format("Parking Fee:     RM %6.2f\n", parkingFee));
-        sb.append(String.format("  (Rate: %d hrs x RM %.2f)\n", roundedHours, rate));
-        
-        if (newFines > 0) sb.append(String.format("Violation Fine:  RM %6.2f\n", newFines));
-        if (oldDebts > 0) sb.append(String.format("Prev. Unpaid:    RM %6.2f\n", oldDebts));
-        
-        sb.append("--------------------------------------\n");
-        sb.append(String.format("TOTAL AMOUNT:    RM %6.2f\n", totalAmountDue));
-        
-        if (isPaid) {
-            sb.append("--------------------------------------\n");
-            // [NEW] Show actual amount paid vs outstanding
-            sb.append(String.format("Paid Amount:     RM %6.2f\n", amountToPay));
-            sb.append(String.format("Payment Method:  %s\n", method));
-            
-            double balance = totalAmountDue - amountToPay;
-            sb.append(String.format("Outstanding:     RM %6.2f\n", balance));
-            
-            sb.append("\n        THANK YOU!        \n");
-            sb.append("======================================");
+        sb.append("      --- PARKING RECEIPT ---\n");
+        if (isFinal) {
+            sb.append("Status: PAID via ").append(paymentMethod).append("\n");
         } else {
-            sb.append("======================================");
+            sb.append("Status: PENDING PAYMENT\n");
         }
+        sb.append("-------------------------------\n");
+        sb.append("Plate No   : ").append(savedPlate).append("\n");
+        sb.append("Spot ID    : ").append(savedSpotID).append("\n");
+        
+        // Display the simulated rounded hours
+        // This confirms the Ceiling Rounding logic visually (e.g., 1.01 -> 2.0)
+        sb.append("Duration   : ").append(String.format("%.1f", hoursParked)).append(" hours\n");
+        sb.append("Hourly Rate: RM ").append(String.format("%.2f", rate)).append("\n");
+        sb.append("-------------------------------\n");
+        
+        sb.append("Parking Fee: RM ").append(String.format("%.2f", parkingFee)).append("\n");
+        
+        if (newFines > 0) {
+            sb.append("New Fines  : RM ").append(String.format("%.2f", newFines)).append(" (Violation/Overstay)\n");
+        }
+        
+        if (oldDebts > 0) {
+            sb.append("Old Debts  : RM ").append(String.format("%.2f", oldDebts)).append("\n");
+        }
+        
+        sb.append("-------------------------------\n");
+        
+        if (isFineDeferred) {
+            sb.append("TOTAL PAID : RM ").append(String.format("%.2f", amountToPay)).append("\n");
+            sb.append("DEFERRED   : RM ").append(String.format("%.2f", totalAmountDue - amountToPay)).append("\n");
+        } else {
+            sb.append("TOTAL DUE  : RM ").append(String.format("%.2f", totalAmountDue)).append("\n");
+        }
+        
+        sb.append("-------------------------------\n");
+        sb.append("      THANK YOU & DRIVE SAFE\n");
 
         textReceiptArea.setText(sb.toString());
     }

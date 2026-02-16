@@ -1,13 +1,35 @@
 # --- Compiled Class Files ---
 *.class
 
+# --- Executables & Jars ---
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# --- Database & Data Files (CRITICAL FOR YOU) ---
+# Ignore SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Ignore Serialized Object Data (The .dat files)
+*.dat
+*.ser
+
+# Ignore Logs
+*.log
+
 # --- Build & Output Folders ---
 bin/
 out/
 build/
 target/
 
-# --- IDE Settings (Optional but Recommended) ---
+# --- IDE Settings (VS Code, IntelliJ, Eclipse) ---
 .idea/
 .vscode/
 *.iml
@@ -20,7 +42,3 @@ target/
 # --- Operating System Junk ---
 .DS_Store
 Thumbs.db
-
-# --- Data Files (If you don't want to share the save file) ---
-# Uncomment the line below if you want each member to have their own local data
-# *.dat

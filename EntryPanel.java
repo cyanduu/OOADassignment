@@ -1,6 +1,6 @@
-import javax.swing.*;
 import java.awt.*;
 import java.util.List;
+import javax.swing.*;
 
 public class EntryPanel extends JPanel {
 
@@ -20,15 +20,15 @@ public class EntryPanel extends JPanel {
         leftPanel.setBorder(BorderFactory.createTitledBorder("Vehicle Entry Station"));
         leftPanel.setBackground(new Color(240, 240, 240)); 
 
-        JPanel formPanel = new JPanel(new GridLayout(6, 1, 5, 5)); // Inputs
+        JPanel formPanel = new JPanel(new GridLayout(6, 1, 5, 5)); 
 
-        // 1. License Plate
+        // 1. License Plate Input
         formPanel.add(new JLabel("Enter License Plate:"));
         textPlate = new JTextField();
         textPlate.setFont(new Font("Monospaced", Font.BOLD, 14));
         formPanel.add(textPlate);
 
-        // 2. Vehicle Type
+        // 2. Vehicle Type Selection
         formPanel.add(new JLabel("Select Vehicle Type:"));
         String[] types = {"Select Vehicle Type:-", "Car", "Motorcycle", "SUV/Truck", "Handicapped Vehicle"};
         ComboType = new JComboBox<>(types);
@@ -41,57 +41,63 @@ public class EntryPanel extends JPanel {
 
         leftPanel.add(formPanel, BorderLayout.NORTH);
 
-        // Park Button (Big and Clear)
+        // Park Button
         buttonPark = new JButton("ISSUE TICKET & PARK");
         buttonPark.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        buttonPark.setBackground(new Color(144, 238, 144));
+        buttonPark.setBackground(new Color(144, 238, 144)); // Light Green
         buttonPark.setPreferredSize(new Dimension(100, 50));
         leftPanel.add(buttonPark, BorderLayout.SOUTH);
 
 
-        // --- RIGHT PANEL: RULES & REGULATIONS (Permanent Display) ---
+        // --- RIGHT PANEL: RULES & REGULATIONS ---
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setBorder(BorderFactory.createTitledBorder("Parking Regulations & Fines"));
         rightPanel.setBackground(new Color(240, 240, 240)); 
 
-        // Use JEditorPane for clean HTML formatting without "webpage" look
+        // Use JEditorPane for clean HTML formatting
         JEditorPane infoPane = new JEditorPane();
         infoPane.setContentType("text/html");
         infoPane.setEditable(false);
         infoPane.setBackground(new Color(255, 255, 204));
         
-        // PROFESSIONAL, CLEAN CONTENT
+        // Define the rules text using HTML
         String rulesText = "<html><body style='font-family: Sans-Serif; font-size: 10px;'>" +
                 
                 // SECTION 1: ZONES
                 "<b>1. PARKING ZONES & RATES</b>" +
-                "<ul>" +
+                "<ul style='margin-top: 0px; margin-bottom: 5px;'>" +
                 "<li><b>Floor 1 (VIP/Reserved):</b> RM 10.00 / hour.<br><i>(Restricted to VIP Pass Holders)</i></li>" +
                 "<li><b>Floor 1 (Handicapped):</b> RM 2.00 / hour.<br><i>(Free with Valid Permit)</i></li>" +
                 "<li><b>Floors 2 & 3 (Standard):</b> RM 5.00 / hour.<br><i>(Open to all standard vehicles)</i></li>" +
                 "<li><b>Floor 4 (Compact):</b> RM 2.00 / hour.<br><i>(Motorcycles & Compact Cars only)</i></li>" +
                 "</ul>" +
-                "<b>2. VIP ACCESS</b>" +
-                "<p>VIP spots are reserved (S01-S15). Unauthorized parking will incur fines.</p>" +
-                "</body></html>" +
 
-                // SECTION 2: FINES
-                "<b>2. VIOLATION POLICY</b>" +
-                "<p>Vehicles parked in unauthorized zones (e.g., Standard Car in VIP Spot) will be subject to fines upon exit.</p>" +
+                // SECTION 2: VIP ACCESS
+                "<b>2. VIP ACCESS</b>" +
+                "<div style='margin-left: 20px; margin-bottom: 8px;'>" +
+                "VIP spots are reserved (S01-S15). Unauthorized parking will incur fines." +
+                "</div>" +
+
+                // SECTION 3: VIOLATION POLICY
+                "<b>3. VIOLATION POLICY</b>" +
+                "<div style='margin-left: 20px; margin-bottom: 8px;'>" +
+                "Vehicles parked in unauthorized zones (e.g., Standard Car in VIP Spot) will be subject to fines upon exit." +
+                "</div>" +
                 
-                "<b>3. FINE SCHEMES (Subject to Admin Settings)</b>" +
-                "<ul>" +
+                // SECTION 4: FINE SCHEMES
+                "<b>4. FINE SCHEMES (Subject to Admin Settings)</b>" +
+                "<ul style='margin-top: 0px; margin-bottom: 0px;'>" +
                 "<li><b>Fixed Scheme:</b> Flat penalty of RM 50.00.</li>" +
                 "<li><b>Progressive Scheme:</b> Penalty increases every 24 hours.</li>" +
                 "<li><b>Hourly Scheme:</b> RM 20.00 charged per unauthorized hour.</li>" +
                 "</ul>" +
                 
-                "<br><i>*Lost tickets will incur a maximum daily penalty.</i>" +
+                "<div style='margin-top: 5px; margin-left: 5px;'><i>*Lost tickets will incur a maximum daily penalty.</i></div>" +
                 "</body></html>";
 
         infoPane.setText(rulesText);
         
-        // Add scroll pane in case screens are small
+        // Add scroll pane for better visibility on small screens
         rightPanel.add(new JScrollPane(infoPane), BorderLayout.CENTER);
 
 
@@ -101,8 +107,11 @@ public class EntryPanel extends JPanel {
 
 
         // --- ACTION LISTENERS ---
+        
+        // Update available spots when vehicle type changes
         ComboType.addActionListener(e -> updateAvailableSpots());
 
+        // Handle Park Button Click
         buttonPark.addActionListener(e -> {
             String plate = textPlate.getText().trim().toUpperCase();
             String type = (String) ComboType.getSelectedItem();
@@ -113,10 +122,19 @@ public class EntryPanel extends JPanel {
                 return;
             }
 
+            // Verify that the vehicle is not already currently parked
+            if (ParkingLot.getInstance().findSpotByPlate(plate) != null) {
+                JOptionPane.showMessageDialog(this, 
+                    "Error: Vehicle with plate " + plate + " is already inside the parking lot!", 
+                    "Duplicate Entry", 
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             Vehicle v = createVehicle(plate, type);
             if (v == null) return;
 
-            // Park Logic
+            // Attempt to park the vehicle in the backend
             Ticket ticket = ParkingLot.getInstance().parkVehicleAtSpot(spotID, v);
 
             if (ticket != null) {
@@ -124,6 +142,8 @@ public class EntryPanel extends JPanel {
                 "Ticket Issued Successfully!\n\n" + ticket.getTicketDetails(), 
                 "Access Granted", 
                 JOptionPane.INFORMATION_MESSAGE);
+                
+                // Reset form
                 textPlate.setText("");
                 ComboType.setSelectedIndex(0);
             } else {
@@ -132,7 +152,7 @@ public class EntryPanel extends JPanel {
         });
     }
 
-    // --- LOGIC: SHOW SPOTS ---
+    // Filters and displays available spots based on vehicle type and spot rules
     private void updateAvailableSpots() {
         ComboSpots.removeAllItems();
         String selectedType = (String) ComboType.getSelectedItem();
@@ -145,7 +165,8 @@ public class EntryPanel extends JPanel {
         List<ParkingSpot> allSpots = ParkingLot.getInstance().getSpots();
         
         for (ParkingSpot s : allSpots) {
-            // "Loose" Filter: Show the spot if it fits, OR if it's special (so users can see/select them)
+            // Allow users to see special spots (VIP/Handicapped) even if they might not fit strictly, 
+            // so they can choose to break the rules (and get fined).
             boolean isSpecialSpot = s.getType().equalsIgnoreCase("Reserved") || s.getType().equalsIgnoreCase("Handicapped");
             boolean physicallyFits = s.isSuitableFor(dummy);
 
@@ -155,6 +176,7 @@ public class EntryPanel extends JPanel {
         }
     }
 
+    // Factory method to create specific Vehicle objects based on selection
     private Vehicle createVehicle(String plate, String type) {
         if (type == null) return null;
         if (type.equals("Car") || type.equals("VIP Car") || type.equals("Handicapped Vehicle")) return new Car(plate);

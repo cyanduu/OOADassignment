@@ -1,8 +1,12 @@
 import java.io.Serializable;
 
+// Represents a physical parking spot in the parking lot.
+// Implements Serializable to allow saving the state to a file.
 public class ParkingSpot implements Serializable {
-    private String spotID;      // e.g., "F1-01"
-    private String type;        // "Compact", "Regular", "Motorcycle", "Handicapped"
+    private static final long serialVersionUID = 1L;
+
+    private String spotID;      // Unique Identifier (e.g., "F1-S01")
+    private String type;        // "Compact", "Regular", "Reserved", "Handicapped"
     private boolean isOccupied;
     private Vehicle currentVehicle;
     private double hourlyRate;
@@ -15,36 +19,26 @@ public class ParkingSpot implements Serializable {
     }
 
     // --- LOGIC: CHECK IF VEHICLE FITS ---
+    // Delegates the logic to FineManager to ensure consistency across the system.
+    // This checks if the vehicle type (e.g., "Car") is allowed in this spot type (e.g., "Compact").
     public boolean isSuitableFor(Vehicle v) {
         if (v == null) return false;
-        
-        // OPTION 1: The Best Way (Link to Member 2's Logic)
-        // This ensures both files always agree.
         return FineManager.isVehicleAllowed(this.type, v.getType());
-
-        /* // OPTION 2: The Manual Fix (If you don't want to link files)
-        // Just un-comment this if Option 1 gives errors.
-        
-        String vType = v.getType(); 
-
-        switch (this.type) {
-            case "Compact":
-                return vType.equalsIgnoreCase("Motorcycle") || vType.equalsIgnoreCase("Bicycle");
-
-            case "Regular":
-                return vType.equalsIgnoreCase("Car") || vType.equalsIgnoreCase("SUV") || vType.equalsIgnoreCase("VIP Car");
-
-            case "Handicapped":
-                return true; // Visible to all (Honor system)
-
-            case "Reserved":
-                return true; // <--- CHANGED: Now visible to all cars!
-
-            default:
-                return false;
-        }
-        */
     }
+
+    // --- PARKING ACTIONS ---
+
+    public void park(Vehicle v) {
+        this.currentVehicle = v;
+        this.isOccupied = true;
+    }
+
+    public void removeVehicle() {
+        this.currentVehicle = null;
+        this.isOccupied = false;
+    }
+
+    // --- GETTERS ---
 
     public boolean isOccupied() {
         return isOccupied;
@@ -62,46 +56,12 @@ public class ParkingSpot implements Serializable {
         return hourlyRate;
     }
 
-    // CRITICAL: Logic to check if a vehicle fits in this spot
-    /*public boolean isSuitableFor(Vehicle v) {
-        String vType = v.getType();
-
-        // 1. Motorcycle spots are ONLY for Motorcycles
-        if (this.type.equals("Motorcycle")) {
-            return vType.equals("Motorcycle");
-        }
-
-        // 2. Compact spots are ONLY for Cars (Motorcycles/SUVs usually don't park here in this logic)
-        if (this.type.equals("Compact")) {
-            return vType.equals("Car");
-        }
-
-        // 3. Regular spots fit Cars and SUVs
-        if (this.type.equals("Regular")) {
-            return vType.equals("Car") || vType.equals("SUV");
-        }
-        
-        // 4. Handicapped spots (Simplified: assuming any vehicle with permit, handled by UI logic)
-        // For now, allow any vehicle type if the spot is Handicapped, 
-        // assuming the UI checked for the permit.
-        return true; 
-    }*/
-
-    public void park(Vehicle v) {
-        this.currentVehicle = v;
-        this.isOccupied = true;
-    }
-
     public Vehicle getCurrentVehicle() {
         return currentVehicle;
     }
 
+    // Alias method for compatibility with other modules
     public Vehicle getVehicle() {
         return this.currentVehicle;
-    }
-
-    public void removeVehicle() {
-        this.currentVehicle = null;
-        this.isOccupied = false;
     }
 }
