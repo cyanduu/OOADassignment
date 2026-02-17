@@ -10,12 +10,10 @@ public class EntryPanel extends JPanel {
     private JButton buttonPark;
 
     public EntryPanel() {
-        //Use a Grid Layout to split the screen 50/50
         setLayout(new GridLayout(1, 2, 15, 15));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         this.setBackground(new Color(255, 255, 204)); 
 
-        //LEFT PANEL: DRIVER INPUTS
         JPanel leftPanel = new JPanel(new BorderLayout(10, 10));
         leftPanel.setBorder(BorderFactory.createTitledBorder("Vehicle Entry Station"));
         leftPanel.setBackground(new Color(240, 240, 240)); 

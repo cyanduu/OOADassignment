@@ -2,19 +2,15 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-// Main system class managing all parking spots.
-// Implements Singleton pattern to ensure only one parking lot exists.
 public class ParkingLot implements Serializable {
     private static final long serialVersionUID = 1L;
     
-    // --- SINGLETON INSTANCE ---
+    //singleton instance
     private static ParkingLot instance;
 
-    // --- DATA FIELDS ---
+    //data fields
     private List<ParkingSpot> spots;
     private double totalRevenue;
-    
-    // Observers list is transient so it is NOT saved to the file (avoids serialization errors)
     private transient List<ParkingObserver> observers = new ArrayList<>();
     private List<Transaction> transactionHistory;
 
@@ -33,8 +29,7 @@ public class ParkingLot implements Serializable {
         return instance;
     }
 
-    // --- INITIALIZATION ---
-    // Sets up the 4 floors with specific spot types and rates.
+    //initialize floors and spots
     private void initializeSpots() {
         int floors = 4;
         int spotsPerFloor = 20;
@@ -45,31 +40,29 @@ public class ParkingLot implements Serializable {
                 String type = "Regular";
                 double rate = 5.0;
 
-                // FLOOR 1: VIP & HANDICAPPED
+                //FLOOR 1: VIP & HANDICAPPED
                 if (f == 1) {
                     if (s <= 15) { 
-                        // S01 - S15: VIP Reserved
+                        //S01 - S15: VIP Reserved
                         type = "Reserved"; 
                         rate = 10.0; 
                     } else { 
-                        // S16 - S20: Handicapped
+                        //S16 - S20: Handicapped
                         type = "Handicapped"; 
                         rate = 2.0; 
                     }
                 } 
-                // FLOOR 4: COMPACT
+                //FLOOR 4: COMPACT
                 else if (f == 4) {
                     type = "Compact"; 
                     rate = 2.0;
                 }
-                // FLOORS 2 & 3: STANDARD (Default)
+                //FLOORS 2 & 3: STANDARD (Default)
 
                 spots.add(new ParkingSpot(id, type, rate));
             }
         }
     }
-
-    // --- DATA ACCESS ---
 
     public void setSpots(List<ParkingSpot> newSpots) {
         this.spots = newSpots;
@@ -93,7 +86,7 @@ public class ParkingLot implements Serializable {
     public double getTotalRevenue() {
         if (transactionHistory == null) return 0.0;
         
-        // Sum up all transactions in the list
+        //total up transaction
         double sum = 0;
         for (Transaction t : transactionHistory) {
             sum += t.getAmount();
@@ -115,8 +108,6 @@ public class ParkingLot implements Serializable {
         notifyObservers();
     }
 
-    // --- OBSERVER PATTERN ---
-    // Allows UI components (like AdminPanel) to auto-refresh when data changes.
     public void addObserver(ParkingObserver obs) {
         if (observers == null) observers = new ArrayList<>();
         observers.add(obs);
@@ -129,13 +120,10 @@ public class ParkingLot implements Serializable {
         }
     }
 
-    // --- CORE LOGIC: PARKING ---
-
-    // Manual Park: User selects a specific spot ID (EntryPanel)
+    //user select spot
     public Ticket parkVehicleAtSpot(String spotID, Vehicle v) {
         for (ParkingSpot spot : getSpots()) {
             if (spot.getSpotID().equals(spotID)) {
-                // Check if spot is empty and if vehicle fits (or is allowed via policy)
                 if (!spot.isOccupied() && spot.isSuitableFor(v)) {
                     spot.park(v);
                     
@@ -155,7 +143,6 @@ public class ParkingLot implements Serializable {
         return null;
     }
 
-    // Auto Park: Finds the first available spot (for testing or simulation)
     public Ticket parkVehicle(Vehicle v) {
         ParkingSpot spot = findAvailableSpot(v);
         if (spot != null) {
@@ -175,9 +162,8 @@ public class ParkingLot implements Serializable {
         return null;
     }
 
-    // --- CORE LOGIC: EXIT & UTILS ---
-
-    // Finds a parking spot containing a specific license plate
+    //Exit
+    //Finds a parking spot containing a specific license plate
     public ParkingSpot findSpotByPlate(String plate) {
         for (ParkingSpot spot : getSpots()) {
             if (spot.isOccupied() && spot.getCurrentVehicle() != null) {
@@ -189,7 +175,6 @@ public class ParkingLot implements Serializable {
         return null;
     }
 
-    // Removes a vehicle from a spot (ExitPanel)
     public void removeVehicle(String spotID) {
         for (ParkingSpot s : getSpots()) {
             if (s.getSpotID().equals(spotID)) {
@@ -200,7 +185,6 @@ public class ParkingLot implements Serializable {
         }
     }
 
-    // Internal helper to find first suitable spot
     private ParkingSpot findAvailableSpot(Vehicle v) {
         for (ParkingSpot spot : getSpots()) {
             if (!spot.isOccupied() && spot.isSuitableFor(v)) {

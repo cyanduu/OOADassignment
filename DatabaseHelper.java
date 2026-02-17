@@ -1,11 +1,8 @@
 import java.sql.*;
 
 public class DatabaseHelper {
-
-    // Connection string for the local SQLite database file
     private static final String URL = "jdbc:sqlite:parking.db";
 
-    // Initializes the database tables if they don't exist
     public static void initializeDatabase() {
         String sqlHandicapped = "CREATE TABLE IF NOT EXISTS HandicappedPermits (plate_number VARCHAR(20) PRIMARY KEY);";
         String sqlReserved = "CREATE TABLE IF NOT EXISTS ReservedPermits (plate_number VARCHAR(20) PRIMARY KEY);";
@@ -22,7 +19,7 @@ public class DatabaseHelper {
         }
     }
 
-    // Registers a VIP plate into the database
+    //register vip
     public static boolean registerReservedPlate(String plate) {
         String sql = "INSERT INTO ReservedPermits(plate_number) VALUES(?)";
         try (Connection conn = DriverManager.getConnection(URL);
@@ -37,7 +34,7 @@ public class DatabaseHelper {
         }
     }
 
-    // Checks if a vehicle is in the VIP database
+    //check if the vehicle in vip database
     public static boolean hasReservedPermit(String plate) {
         String sql = "SELECT plate_number FROM ReservedPermits WHERE plate_number = ?";
         try (Connection conn = DriverManager.getConnection(URL);
@@ -52,7 +49,7 @@ public class DatabaseHelper {
         }
     }
 
-    // Registers a Handicapped plate into the database
+    //register handicapped permit
     public static boolean registerHandicappedPlate(String plate) {
         String sql = "INSERT INTO HandicappedPermits(plate_number) VALUES(?)";
         try (Connection conn = DriverManager.getConnection(URL);
@@ -67,7 +64,7 @@ public class DatabaseHelper {
         }
     }
 
-    // Checks if a vehicle has a Handicapped permit
+    //check if the vehicle in handicapped database
     public static boolean hasHandicappedPermit(String plate) {
         String sql = "SELECT plate_number FROM HandicappedPermits WHERE plate_number = ?";
         try (Connection conn = DriverManager.getConnection(URL);

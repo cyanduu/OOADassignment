@@ -62,7 +62,6 @@ public class ReportPanel extends JPanel implements ParkingObserver {
     }
 
     //SUB-PANEL: FINANCIAL REPORTS
-    //Make sure you have this variable declared at the top of the class!
     private JPanel createFinancialPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
 
@@ -75,21 +74,21 @@ public class ReportPanel extends JPanel implements ParkingObserver {
         revenuePanel.setBorder(BorderFactory.createTitledBorder("Revenue Report"));
         panel.add(revenuePanel, BorderLayout.NORTH);
 
-        //2. Transaction History Table (New)
+        //2. Transaction History Table 
         String[] historyCols = {"Time", "Plate", "Spot", "Method", "Amount (RM)"};
         historyModel = new DefaultTableModel(historyCols, 0);
         JTable lableHistory = new JTable(historyModel);
         JScrollPane historyScroll = new JScrollPane(lableHistory);
         historyScroll.setBorder(BorderFactory.createTitledBorder("Transaction History (Past & Present)"));
 
-        //3. Fine Report Table (RESTORED!)
+        //3. Fine Report Table
         String[] fineCols = {"License Plate", "Outstanding Amount (RM)", "Status"};
         fineModel = new DefaultTableModel(fineCols, 0); //
         tableFines = new JTable(fineModel);
         JScrollPane fineScroll = new JScrollPane(tableFines);
         fineScroll.setBorder(BorderFactory.createTitledBorder("Outstanding Fines Report"));
 
-        //4. Combine them (Split Pane so you see both)
+        //4. Combine them (Split Panel)
         JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, historyScroll, fineScroll);
         splitPane.setDividerLocation(300); // Give history half the space
         
@@ -139,7 +138,6 @@ public class ReportPanel extends JPanel implements ParkingObserver {
         }
 
         //4. Update Transaction History Table (Past & Present Customers)
-        //Ensure 'historyModel' was initialized in your constructor/createFinancialPanel
         if (historyModel != null) {
             historyModel.setRowCount(0); // Clear old data
             List<Transaction> history = lot.getHistory();
