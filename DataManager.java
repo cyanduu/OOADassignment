@@ -5,14 +5,10 @@ import java.util.List;
 import java.util.Map;
 
 public class DataManager {
-
-    // File paths for persistent storage
     private static final String PARKING_FILE = "parking_system_data.dat";
     private static final String FINES_FILE = "fines.dat";
     private static final String REVENUE_FILE = "revenue.dat";
 
-    // Serializes and saves the current state of all parking spots to a file.
-    // This ensures spot occupancy and reservation status are preserved.
     public static void saveState(List<ParkingSpot> spots) {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(PARKING_FILE))) {
             out.writeObject(spots);
@@ -22,8 +18,6 @@ public class DataManager {
         }
     }
 
-    // Loads the saved parking spot data from the file.
-    // Returns an empty list if no save file exists (first run).
     @SuppressWarnings("unchecked")
     public static List<ParkingSpot> loadState() {
         File file = new File(PARKING_FILE);
@@ -43,7 +37,6 @@ public class DataManager {
         }
     }
 
-    // Serializes and saves the map of unpaid fines to a file.
     public static void saveFines(Map<String, Double> fines) {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FINES_FILE))) {
             oos.writeObject(fines);
@@ -53,7 +46,6 @@ public class DataManager {
         }
     }
 
-    // Loads the map of unpaid fines from the file.
     @SuppressWarnings("unchecked")
     public static Map<String, Double> loadFines() {
         File file = new File(FINES_FILE);

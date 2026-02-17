@@ -1,12 +1,11 @@
+
 import java.io.Serializable;
 
-// Represents a physical parking spot in the parking lot.
-// Implements Serializable to allow saving the state to a file.
 public class ParkingSpot implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private String spotID;      // Unique Identifier (e.g., "F1-S01")
-    private String type;        // "Compact", "Regular", "Reserved", "Handicapped"
+    private String spotID;      
+    private String type;        
     private boolean isOccupied;
     private Vehicle currentVehicle;
     private double hourlyRate;
@@ -18,16 +17,12 @@ public class ParkingSpot implements Serializable {
         this.isOccupied = false;
     }
 
-    // --- LOGIC: CHECK IF VEHICLE FITS ---
-    // Delegates the logic to FineManager to ensure consistency across the system.
-    // This checks if the vehicle type (e.g., "Car") is allowed in this spot type (e.g., "Compact").
     public boolean isSuitableFor(Vehicle v) {
         if (v == null) return false;
         return FineManager.isVehicleAllowed(this.type, v.getType());
     }
 
-    // --- PARKING ACTIONS ---
-
+    //Parking process
     public void park(Vehicle v) {
         this.currentVehicle = v;
         this.isOccupied = true;
@@ -37,8 +32,6 @@ public class ParkingSpot implements Serializable {
         this.currentVehicle = null;
         this.isOccupied = false;
     }
-
-    // --- GETTERS ---
 
     public boolean isOccupied() {
         return isOccupied;
@@ -60,7 +53,6 @@ public class ParkingSpot implements Serializable {
         return currentVehicle;
     }
 
-    // Alias method for compatibility with other modules
     public Vehicle getVehicle() {
         return this.currentVehicle;
     }

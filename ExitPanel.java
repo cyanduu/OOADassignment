@@ -15,7 +15,7 @@ public class ExitPanel extends JPanel {
     
     //LOGIC VARIABLES
     private ParkingSpot foundSpot;
-    private double totalAmountDue; // Total owed (Parking + Fines + Debts)
+    private double totalAmountDue; 
     private double hoursParked;
     private double parkingFee;
     private double newFines;
@@ -24,7 +24,7 @@ public class ExitPanel extends JPanel {
     private long exitTimeMillis;
     
     //Payment State
-    private double amountToPay;    // Actual amount user is paying now
+    private double amountToPay;    
     private boolean isFineDeferred;
     private String savedPlate;       
     private long savedEntryTime;     
@@ -106,18 +106,16 @@ public class ExitPanel extends JPanel {
         exitTimeMillis = System.currentTimeMillis();
         double durationMs = exitTimeMillis - savedEntryTime;
         
-        //SIMULATION ADJUSTMENT: 1 Minute = 1 Hour
-        //Original Math: hoursParked = durationMs / (1000.0 * 60 * 60);
-        //New Math: Dividing by 60,000ms (1 minute) so that 60 seconds of real time equals 1 hour of parking.
+        //for demo: 1 Minute = 1 Hour
+        //hoursParked = durationMs / (1000.0 * 60 * 60); --> original real-time calculation
         double rawHours = durationMs / (1000.0 * 60); 
 
-        //CEILING ROUNDING LOGIC
-        //Requirement: Round up to the nearest hour. (e.g., 1.1 minutes real-time becomes 2 hours simulated)
+        //ceiling rounding
         hoursParked = Math.ceil(rawHours);
         
         if (hoursParked < 1.0) hoursParked = 1.0; // Minimum charge 1 hour
 
-        //Check Permits (Database)
+        //Check Permits
         boolean hasCard = DatabaseHelper.hasHandicappedPermit(savedPlate);
         boolean isReservedSpot = foundSpot.getType().equalsIgnoreCase("Reserved");
         boolean hasVIPPermit = DatabaseHelper.hasReservedPermit(savedPlate);

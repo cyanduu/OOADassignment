@@ -19,36 +19,30 @@ public class AdminPanel extends JPanel implements ParkingObserver {
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // --- TOP SECTION: DASHBOARD STATISTICS ---
         JPanel statsPanel = new JPanel(new GridLayout(1, 2, 10, 10));
         
         lblRevenue = new JLabel("Total Revenue: RM 0.00", SwingConstants.CENTER);
         lblOccupancy = new JLabel("Occupancy: 0 / 0", SwingConstants.CENTER);
         
-        // Style the Revenue Label
         lblRevenue.setFont(new Font("Arial", Font.BOLD, 18));
         lblRevenue.setOpaque(true);
         lblRevenue.setBackground(new Color(220, 255, 220)); // Light Green background
         
-        // Style the Occupancy Label
         lblOccupancy.setFont(new Font("Arial", Font.BOLD, 18));
         
         statsPanel.add(lblRevenue);
         statsPanel.add(lblOccupancy);
         add(statsPanel, BorderLayout.NORTH);
 
-        // --- CENTER SECTION: LIVE VEHICLE TABLE ---
         String[] columns = {"Spot ID", "License Plate", "Type", "Entry Time"};
         tableModel = new DefaultTableModel(columns, 0);
         vehicleTable = new JTable(tableModel);
         add(new JScrollPane(vehicleTable), BorderLayout.CENTER);
 
-        // --- BOTTOM SECTION: CONTROLS & DATABASE CONFIGURATION ---
-        // We use a Grid Layout (3 rows) to stack the controls neatly
         JPanel controlsPanel = new JPanel(new GridLayout(3, 1, 5, 5));
         controlsPanel.setBorder(BorderFactory.createTitledBorder("System Configuration & Database"));
 
-        // 1. Fine Scheme Selector
+        //1. Fine Scheme Selector
         JPanel schemePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         schemePanel.add(new JLabel("Active Fine Scheme:"));
         String[] schemes = {"Fixed", "Hourly", "Progressive"};
@@ -60,7 +54,7 @@ public class AdminPanel extends JPanel implements ParkingObserver {
         schemePanel.add(schemeSelector);
         controlsPanel.add(schemePanel);
 
-        // 2. SQL Database: Register Handicapped Permit
+        //2. Register Handicapped Permit (db)
         JPanel sqlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         sqlPanel.add(new JLabel("Register Handicapped Permit (SQL):"));
         JTextField txtPlateRegister = new JTextField(10);
@@ -73,7 +67,6 @@ public class AdminPanel extends JPanel implements ParkingObserver {
                 return;
             }
             
-            // Interaction with DatabaseHelper
             boolean success = DatabaseHelper.registerHandicappedPlate(plate);
             if (success) {
                 JOptionPane.showMessageDialog(this, "Plate " + plate.toUpperCase() + " registered as Handicapped.");
@@ -87,7 +80,7 @@ public class AdminPanel extends JPanel implements ParkingObserver {
         sqlPanel.add(btnRegister);
         controlsPanel.add(sqlPanel);
 
-        // 3. SQL Database: Register VIP Reserved Permit
+        //3. Register VIP Reserved Permit (db)
         JPanel reservedPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         reservedPanel.add(new JLabel("Register VIP Reserved Plate (SQL):"));
         JTextField txtReservedPlate = new JTextField(10);
@@ -115,28 +108,24 @@ public class AdminPanel extends JPanel implements ParkingObserver {
 
         add(controlsPanel, BorderLayout.SOUTH);
 
-        // Initial Data Load
         onParkingDataChanged();
     }
 
-    // Triggered automatically whenever the ParkingLot state changes.
-    // Updates revenue, occupancy counters, and the live table.
     @Override
     public void onParkingDataChanged() {
         if (lot == null) return;
 
-        // 1. Update Revenue Display
+        //revenue display
         lblRevenue.setText(String.format("Total Revenue: RM %.2f", lot.getTotalRevenue()));
 
-        // 2. Update Occupancy & Table Data
+        //occupancy & table data
         List<ParkingSpot> spots = lot.getSpots();
         if (spots != null) {
-            // Calculate total occupied spots
+            //calculate occupancy
             long occupiedCount = spots.stream().filter(ParkingSpot::isOccupied).count();
             lblOccupancy.setText("Occupancy: " + occupiedCount + " / " + spots.size());
 
-            // Refresh Table
-            tableModel.setRowCount(0); // Clear existing rows
+            tableModel.setRowCount(0); 
             for (ParkingSpot s : spots) {
                 if (s.isOccupied() && s.getCurrentVehicle() != null) {
                     Vehicle v = s.getCurrentVehicle();
@@ -144,7 +133,7 @@ public class AdminPanel extends JPanel implements ParkingObserver {
                         s.getSpotID(),
                         v.getLicensePlate(),
                         v.getType(),
-                        new Date(v.getEntryTime()).toString() // Format timestamp to readable date
+                        new Date(v.getEntryTime()).toString()
                     });
                 }
             }

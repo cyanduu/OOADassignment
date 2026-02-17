@@ -6,22 +6,18 @@ import javax.swing.*;
 
 public class MainSystem {
     public static void main(String[] args) {
-        // 1. Setup the UI Look and Feel to match the operating system
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        // 2. Initialize the Backend Systems
         DatabaseHelper.initializeDatabase();
         ParkingLot lot = ParkingLot.getInstance();
         System.out.println("System: Backend Services Initialized.");
 
-        // 3. Load Persistent Data (Restore state from previous session)
         
-        // Load Parking Spots (Occupancy & Reservations)
-        // A. Load Parking Spots
+        //load Parking Spots (Occupancy & Reservations)
         List<ParkingSpot> savedSpots = DataManager.loadState();
         if (savedSpots != null && !savedSpots.isEmpty()) {
             lot.setSpots(savedSpots);
@@ -34,14 +30,14 @@ public class MainSystem {
             System.out.println("System: Revenue history loaded.");
         }   
 
-        // Load Financial Data (Unpaid Fines)
+        //load Financial Data (Unpaid Fines)
         Map<String, Double> savedFines = DataManager.loadFines();
         if (savedFines != null && !savedFines.isEmpty()) {
             FineManager.setOutstandingFines(savedFines);
             System.out.println("System: Previous fine records loaded.");
         }
 
-        // 4. Role Selection (Access Control)
+        //role selection (Access Control)
         String[] options = {"Driver / User", "Administrator"};
         int roleChoice = JOptionPane.showOptionDialog(
             null, 
@@ -56,11 +52,10 @@ public class MainSystem {
 
         boolean isAdmin = (roleChoice == 1);
 
-        // Security Check for Admin Access
+        //security Check for Admin Access
         if (isAdmin) {
             String password = JOptionPane.showInputDialog(null, "Enter Admin Password:");
-            // Simple password check
-            if (password != null && password.equals("CANDU")) {
+            if (password != null && password.equals("1234")) {
                 JOptionPane.showMessageDialog(null, "Access Granted. Welcome Admin.");
             } else {
                 JOptionPane.showMessageDialog(null, "Access Denied!", "Security Alert", JOptionPane.ERROR_MESSAGE);
@@ -68,24 +63,18 @@ public class MainSystem {
             }
         }
 
-        // 5. Create the Main Window Frame
         JFrame frame = new JFrame(isAdmin ? "Parking Lot Management System - ADMIN" : "Parking Lot Management System - DRIVER");
         
-        // We use DO_NOTHING_ON_CLOSE to intercept the close event for saving data
         frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        
         frame.setSize(1100, 750);
-        frame.setLocationRelativeTo(null); // Center on screen
+        frame.setLocationRelativeTo(null);
 
-        // 6. Setup Tabs based on User Role
         JTabbedPane tabs = new JTabbedPane();
 
-        // Common Views (Available to both, or restricted based on real-world logic)
-        // In this simulation, Admins can also see the entry/exit screens to manage them.
         tabs.addTab("Entry Station", new EntryPanel());
         tabs.addTab("Exit Station", new ExitPanel());
 
-        // Admin-Only Views
+        //Admin-Only Views
         if (isAdmin) {
             tabs.addTab("Admin Dashboard", new AdminPanel(lot));
             tabs.addTab("Reports & Analytics", new ReportPanel()); 
@@ -93,7 +82,7 @@ public class MainSystem {
 
         frame.add(tabs);
 
-        // 7. Data Persistence Strategy (Save on Exit)
+        //Data Persistence Strategy (Save on Exit)
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -104,8 +93,7 @@ public class MainSystem {
                 if (confirm == JOptionPane.YES_OPTION) {
                     System.out.println("System: Saving data before shutting down...");
                     
-                    // Save all currently parked cars and fines to file
-                    // Note: Ensure ParkingLot has getSpots() method
+                    //save all currently parked cars and fines to file
                     DataManager.saveState(ParkingLot.getInstance().getSpots());
                     DataManager.saveHistory(ParkingLot.getInstance().getHistory()); 
                     DataManager.saveFines(FineManager.getAllOutstandingFines());
