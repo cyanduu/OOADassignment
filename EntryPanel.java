@@ -179,7 +179,7 @@ public class EntryPanel extends JPanel {
     private Vehicle createVehicle(String plate, String type) {
         if (type == null) return null;
         if (type.equals("Car") || type.equals("VIP Car") || type.equals("Handicapped Vehicle")) return new Car(plate);
-        if (type.equals("Motorcycle")) return new Motorcycle(plate);
+        if (type.equals("Motorcycle")) return new Compact(plate);
         if (type.equals("SUV/Truck")) return new SUV(plate);
         return null;
     }

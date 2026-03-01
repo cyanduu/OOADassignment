@@ -19,7 +19,7 @@ public abstract class Vehicle implements Serializable {
         return entryTime;
     }
 
-    // Abstract method that must be implemented by subclasses (Car, Motorcycle, SUV).
+    // Abstract method that must be implemented by subclasses (Car, Compact, SUV).
     // Used to identify the vehicle type for parking rules and rates.
     public abstract String getType();
 }

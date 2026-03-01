@@ -1,6 +1,7 @@
 import java.awt.*;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
@@ -122,20 +123,52 @@ public class AdminPanel extends JPanel implements ParkingObserver {
     // Triggered automatically whenever the ParkingLot state changes.
     // Updates revenue, occupancy counters, and the live table.
     @Override
-    public void onParkingDataChanged() {
+    public final void onParkingDataChanged() {
         if (lot == null) return;
 
-        // 1. Update Revenue Display
-        lblRevenue.setText(String.format("Total Revenue: RM %.2f", lot.getTotalRevenue()));
+        // --- 1. UPDATE FINANCIALS (Revenue + Unpaid Fines) ---
+        double totalRevenue = lot.getTotalRevenue();
+        
+        // Calculate total unpaid fines from FineManager
+        double totalUnpaidFines = 0.0;
+        Map<String, Double> allFines = FineManager.getAllOutstandingFines();
+        if (allFines != null) {
+            for (double amount : allFines.values()) {
+                totalUnpaidFines += amount;
+            }
+        }
 
-        // 2. Update Occupancy & Table Data
+        // Use HTML to show two lines of text in the single Revenue Label
+        lblRevenue.setText(String.format(
+            "<html><center>Total Revenue: <font color='green'>RM %.2f</font><br>" +
+            "<font size='3' color='red'>Unpaid Fines: RM %.2f</font></center></html>", 
+            totalRevenue, totalUnpaidFines
+        ));
+
+        // --- 2. UPDATE OCCUPANCY (With Floor Breakdown) ---
         List<ParkingSpot> spots = lot.getSpots();
         if (spots != null) {
-            // Calculate total occupied spots
-            long occupiedCount = spots.stream().filter(ParkingSpot::isOccupied).count();
-            lblOccupancy.setText("Occupancy: " + occupiedCount + " / " + spots.size());
+            long totalOccupied = spots.stream().filter(ParkingSpot::isOccupied).count();
+            
+            // Build the floor-by-floor breakdown string
+            StringBuilder breakdown = new StringBuilder("<html><center>");
+            breakdown.append("Occupancy: ").append(totalOccupied).append(" / ").append(spots.size()).append("<br>");
+            breakdown.append("<font size='3' color='#555555'>"); // Smaller, grey text for details
 
-            // Refresh Table
+            // Loop through Floors 1 to 4
+            for (int i = 1; i <= 4; i++) {
+                final int floorNum = i;
+                long floorTotal = spots.stream().filter(s -> s.getSpotID().startsWith("F" + floorNum)).count();
+                long floorOcc = spots.stream().filter(s -> s.getSpotID().startsWith("F" + floorNum) && s.isOccupied()).count();
+                
+                breakdown.append("F").append(i).append(": ").append(floorOcc).append("/").append(floorTotal);
+                if (i < 4) breakdown.append(" | "); // Add separator
+            }
+            
+            breakdown.append("</font></center></html>");
+            lblOccupancy.setText(breakdown.toString());
+
+            // --- 3. REFRESH TABLE ---
             tableModel.setRowCount(0); // Clear existing rows
             for (ParkingSpot s : spots) {
                 if (s.isOccupied() && s.getCurrentVehicle() != null) {
@@ -144,7 +177,7 @@ public class AdminPanel extends JPanel implements ParkingObserver {
                         s.getSpotID(),
                         v.getLicensePlate(),
                         v.getType(),
-                        new Date(v.getEntryTime()).toString() // Format timestamp to readable date
+                        new Date(v.getEntryTime()).toString()
                     });
                 }
             }

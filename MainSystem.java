@@ -60,7 +60,7 @@ public class MainSystem {
         if (isAdmin) {
             String password = JOptionPane.showInputDialog(null, "Enter Admin Password:");
             // Simple password check
-            if (password != null && password.equals("CANDU")) {
+            if (password != null && password.equals("1234")) {
                 JOptionPane.showMessageDialog(null, "Access Granted. Welcome Admin.");
             } else {
                 JOptionPane.showMessageDialog(null, "Access Denied!", "Security Alert", JOptionPane.ERROR_MESSAGE);
